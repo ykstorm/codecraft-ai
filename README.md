@@ -1,7 +1,7 @@
 # 🧠 Chai Vibe Editor — AI Browser IDE
 
-[![CI](https://github.com/ykstorm/chai-vibe-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/chai-vibe-editor/actions/workflows/ci.yml)
-[![Docker](https://img.shields.io/docker/v/ykstorm/chai-vibe-editor?label=docker&sort=semver)](https://github.com/ykstorm/chai-vibe-editor/pkgs/container/chai-vibe-editor)
+[![CI](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml)
+[![Docker](https://img.shields.io/docker/v/ykstorm/codecraft-ai?label=docker&sort=semver)](https://github.com/ykstorm/codecraft-ai/pkgs/container/codecraft-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Chai Vibe Editor** is a blazing-fast, AI-integrated web IDE built entirely in the browser using Next.js 15, WebContainers, Monaco Editor, and local LLMs via Ollama. It offers real-time code execution, an AI-powered chat assistant, and support for multiple tech stacks — all wrapped in a stunning developer-first UI.

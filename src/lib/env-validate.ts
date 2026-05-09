@@ -1,5 +1,5 @@
 /**
- * Environment validation for chai-vibe-editor
+ * Environment validation for codecraft-ai
  * Fails fast on startup if required environment variables are missing.
  */
 
