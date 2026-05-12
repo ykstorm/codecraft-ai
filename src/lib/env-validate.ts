@@ -13,12 +13,6 @@ const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
 ] as const;
 
-const OPTIONAL_ENV_VARS = [
-  "NEXTAUTH_URL",
-  "UPSTASH_REDIS_REST_URL",
-  "UPSTASH_REDIS_REST_TOKEN",
-] as const;
-
 export function validateEnv(): EnvValidationResult {
   const missing: string[] = [];
 
@@ -51,4 +45,5 @@ if (process.env.NODE_ENV === "production" || process.env.NEXT_RUNTIME === "nodej
   // assertEnv();
 }
 
-export default { validateEnv, assertEnv };
+const envModule = { validateEnv, assertEnv };
+export default envModule;
