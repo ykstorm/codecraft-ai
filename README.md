@@ -1,8 +1,8 @@
-# 🧠 Chai Vibe Editor — AI Browser IDE
+# codecraft-ai — Browser-Based AI IDE
 
 [![CI](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml)
 [![Docker](https://img.shields.io/docker/v/ykstorm/codecraft-ai?label=docker&sort=semver)](https://github.com/ykstorm/codecraft-ai/pkgs/container/codecraft-ai)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 ---
 
@@ -140,7 +140,7 @@ Ollama connectivity issues are warnings — the app starts without AI features i
 
 ## What this project proves
 
-For a fresher/junior full-stack role, this shows I can:
+For a founding-engineer / senior IC role, this shows I can:
 
 - Build complex client-side architecture (WebContainers aren't trivial)
 - Integrate multiple APIs (Monaco, xterm, Ollama, NextAuth, Prisma)
@@ -153,4 +153,10 @@ For a fresher/junior full-stack role, this shows I can:
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+Licensed under the Apache License 2.0 — see [LICENSE](LICENSE).
+
+## About
+
+**Lakshyaraj Singh Rao** — Founding Engineer · AI Systems · Full-Stack · Jaipur → Bangalore + Mumbai + Remote
+
+Portfolio: lakshyaraj.dev (coming) · GitHub: [@ykstorm](https://github.com/ykstorm) · LinkedIn: [/in/lakshyaraj](https://linkedin.com/in/lakshyaraj) · Email: raolakshyaraj@gmail.com
