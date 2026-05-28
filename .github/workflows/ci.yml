@@ -53,6 +53,7 @@ jobs:
         run: npm test
 
   build:
+    if: github.ref == 'refs/heads/main'  # only push image on merge to main, not on every PR
     name: Build & Push
     runs-on: ubuntu-latest
     needs: [lint, test]

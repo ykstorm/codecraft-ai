@@ -1,162 +1,178 @@
-# codecraft-ai — Browser-Based AI IDE
+# Codecraft
+
+**Real Node.js in your browser. Monaco + WebContainers + Ollama. OSS, self-hostable.**
 
 [![CI](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml)
-[![Docker](https://img.shields.io/docker/v/ykstorm/codecraft-ai?label=docker&sort=semver)](https://github.com/ykstorm/codecraft-ai/pkgs/container/codecraft-ai)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/docker/v/ykstorm/codecraft-ai?label=docker)](https://github.com/ykstorm/codecraft-ai/pkgs/container/codecraft-ai)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Live](https://img.shields.io/badge/live-codecraft.lakshyaraj.dev-1a73e8)](https://codecraft.lakshyaraj.dev)
+[![GitHub stars](https://img.shields.io/github/stars/ykstorm/codecraft-ai)](https://github.com/ykstorm/codecraft-ai)
+
+Live: **[codecraft.lakshyaraj.dev](https://codecraft.lakshyaraj.dev)** — sign in, open the playground, `npm install`, run a real Node process in the tab.
 
 ---
 
-## I built this because I wanted a real IDE in my browser
+## How this started
 
-Not a code editor with limited features. Not a remote server that adds latency. A actual IDE — the kind where you can `npm install`, hit `node server.js`, and watch it run, all inside a browser tab with zero server-side compute.
+I was writing the README for one of my other projects and wanted to test a code sample before pasting it in. The samples I had were dead — copied from my IDE, but disconnected from a runnable environment.
 
-The browser-as-runtime idea fascinated me. WebContainers let you run V8 (the same engine Node.js uses) directly in a Service Worker in the browser. That's wild. So I built around that.
+Normally to test a snippet I'd:
+1. Open my laptop
+2. `mkdir test && cd test && npm init -y`
+3. `npm install express`
+4. Copy the snippet into a file
+5. `node server.js`
+6. Move on
 
-**Stack:** Next.js 15 · Monaco Editor · WebContainers · xterm.js · Ollama · NextAuth v5 · MongoDB · Docker
+Twenty minutes of tooling for ten seconds of code. Every time.
 
----
+StackBlitz solves this. V8 + libuv compiled to WebAssembly, running in a Service Worker. Real Node.js, inside the browser tab, no server. Brilliant. But proprietary, and you have to live with their UI choices, their auth, their pricing tier when you scale beyond hobby use.
 
-## Quick start
-
-```bash
-git clone https://github.com/ykstorm/codecraft-ai && cd codecraft-ai
-cp .env.example .env          # add AUTH_SECRET, OAuth credentials
-docker compose up -d          # app + Ollama + MongoDB
-# visit http://localhost:3000
-```
-
-Or local dev (you'll need Ollama running separately):
-
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
-```
+So I built Codecraft. The OSS, self-hostable version of the same idea. Same WebContainers tech (Apache 2.0 license on theirs), my UI, my auth (NextAuth v5 with Google + GitHub), my persistence (MongoDB), my AI assistance (local Ollama).
 
 ---
 
 ## What it does
 
-### The browser runtime
+| Capability | Tech | Detail |
+|---|---|---|
+| **Run Node in browser** | WebContainers + Service Worker | `npm install`, `node`, processes, stdout |
+| **Edit code** | Monaco editor (VS Code's editor) | Full syntax highlighting, formatting, IntelliSense |
+| **Real terminal** | xterm.js + fit + search + link addons | Color, copy/paste, search, clickable URLs |
+| **AI completions** | Monaco inline completions + Ollama | Trigger with Ctrl+Space |
+| **4-mode AI chat** | Sidebar — Chat / Review / Fix / Optimize | All against local Ollama |
+| **Persistent FS** | IndexedDB | Files survive page reload + browser restart |
+| **Saved projects** | MongoDB + Prisma | Load/save named projects across devices |
+| **Auth** | NextAuth v5 — Google + GitHub OAuth | JWT sessions, protected routes |
+| **Docker production build** | Multi-stage, ~150 MB final | `docker compose up` and it's running |
 
-WebContainers boot a full Node.js environment inside a Service Worker. The virtual file system is backed by IndexedDB — files survive page reloads, container restarts don't wipe state. No server storage needed for user code. You get `npm install`, `node` processes, stdout/stderr — all client-side.
+---
 
-### Monaco Editor + AI autocomplete
+## The hardest part — focus arbitration
 
-Monaco is the editing surface with syntax highlighting, formatting, keybindings. The AI suggestion system hooks into Monaco's inline completions API — trigger with `Ctrl+Space` or double-Enter. Suggestions come from Ollama running locally.
+Naive layered DOM breaks Monaco's keybindings:
+- Ctrl+C in Monaco = "cancel running editor action"
+- Ctrl+C in xterm = "send SIGINT to running process"
+- Whichever DOM node is "on top" gets the keypress — and that's wrong half the time
 
-### 4-mode AI chat
+I built a focus arbiter that listens for click + keydown at the document level and explicitly tags the active surface via `data-active-surface="monaco"` or `data-active-surface="xterm"`. Each surface's keymap respects that attribute. Click into the terminal → Ctrl+C goes to the process. Click into the editor → Ctrl+C is the editor's. Sounds simple. Took two days.
 
-The sidebar has four modes:
-- **Chat** — general questions, architecture advice, debugging help
-- **Review** — paste code, get a structured review
-- **Fix** — paste buggy code, get a corrected version with explanation
-- **Optimize** — paste code, get a performance-improved version
+Documented in `docs/internals/focus-arbiter.md`. Worth reading if you ever have to mix Monaco with anything else interactive.
 
-All four hit Ollama (running locally at `http://localhost:11434`). If Ollama isn't available, the app logs a warning and continues without AI — the chat UI just won't respond.
+---
 
-### xterm.js terminal
+## When to use Codecraft and when not to
 
-Interactive terminal emulator with fit addon, search, and web link detection. Monaco and xterm share the terminal surface via layered DOM — xterm handles raw keyboard input, Monaco only activates when you're editing a file.
+| You want this | Use |
+|---|---|
+| Self-hostable browser IDE with real Node + AI assistance | Codecraft |
+| Hosted, polished, multiplayer, paid | StackBlitz, CodeSandbox, Replit |
+| Remote dev VM with full Linux + IDE | GitHub Codespaces, Gitpod |
+| VS Code in a browser, no Node runtime | Theia, code-server, VS Code Web |
+| Notebook-style execution (Python/R focus) | Jupyter, Observable, Hex |
 
-### Auth
+Codecraft is for "I want a runnable IDE in my browser tab AND I want to host it myself." The hosted options are easier; the remote options can do more. Codecraft is what you reach for when "self-hostable" is the requirement.
 
-NextAuth v5 with Google and GitHub OAuth. Protected routes redirect to sign-in. JWT sessions. No "demo auth" — this is production-grade.
+---
+
+## 60-second quickstart
+
+### Self-host with Docker
+
+```bash
+git clone https://github.com/ykstorm/codecraft-ai && cd codecraft-ai
+cp .env.example .env       # add AUTH_SECRET + OAuth client IDs/secrets
+docker compose up -d       # app + Ollama + MongoDB
+
+# Wait ~30s for Ollama to pull qwen2.5-coder model
+docker compose logs -f ollama
+
+open http://localhost:3000
+```
+
+### Local dev
+
+```bash
+npm install
+cp .env.example .env.local
+# Make sure Ollama is running: ollama serve && ollama pull qwen2.5-coder
+# Make sure MongoDB is running: docker run -d -p 27017:27017 mongo:7
+npm run dev
+```
+
+For Vercel deploys, COOP/COEP/CORP headers are required for WebContainers to boot — see [DEPLOY.md](DEPLOY.md). Without those three response headers, WebContainers silently fail to register the Service Worker.
+
+---
+
+## What I'd build differently next time
+
+- **Ship a hosted-AI fallback from v0.1.** Ollama is great if you have it; most people don't. v0.2 will ship an OpenAI/Anthropic fallback so users without local Ollama still get AI assistance.
+- **Use Postgres instead of MongoDB.** Document storage made sense for v0.1 (project trees are document-shaped), but Postgres + JSONB is more familiar to most contributors. Prisma's data layer makes this a day's work. v0.3.
+- **Multiplayer should have been v0.1.** Single-user editing feels dated. Yjs + CRDTs would make this 10x more useful. Big lift, planned for v1.0.
+
+If you're starting now, the v0.2 hosted-AI fallback is what to expect first.
 
 ---
 
 ## Architecture
 
 ```mermaid
-graph TD
-    Browser --> Shell[Next.js 15 Shell\nServer-rendered]
-
-    Shell --> Monaco[Monaco Editor]
-    Shell --> Terminal[xterm.js Terminal]
-    Shell --> AIChat[AI Chat Sidebar\n4 modes]
-    Shell --> WC[WebContainer\nService Worker]
-
-    WC --> FS[IndexedDB\nVirtual FS]
-    WC --> NPM[In-memory NPM]
-    WC --> Proc[Process manager]
-
-    AIChat --> Ollama[Ollama\nlocalhost:11434]
-    Ollama --> Models[codellama\nany Ollama model]
-
-    Shell --> MongoDB[Prisma\nMongoDB]
-    Shell --> Auth[NextAuth v5\nOAuth]
-
-    WC -.-> Terminal[reads/writes to\nterminal output]
+graph TB
+    Browser[Browser tab] --> Shell[Next.js 15 shell]
+    Shell --> Monaco[Monaco editor]
+    Shell --> Term[xterm.js terminal]
+    Shell --> Chat[AI chat sidebar 4 modes]
+    Shell --> WC[WebContainer runtime<br/>Service Worker]
+    WC --> FS[IndexedDB VFS]
+    WC --> NPM[in-memory npm]
+    WC --> Procs[Node processes<br/>Web Workers]
+    Chat -->|stream| Ollama[Ollama @ 11434]
+    Monaco -->|inline completion| Ollama
+    Shell -->|/api/projects| Mongo[MongoDB]
+    Shell -->|/api/auth| Auth[NextAuth v5]
 ```
 
-The key thing: everything under "WebContainer" runs in the browser. Vercel only serves the static shell. Ollama runs on the same machine as the user (localhost), so AI inference is free and instantaneous.
+Full boot sequence + focus arbiter docs: [docs/architecture.md](docs/architecture.md).
 
 ---
 
-## The tricky part — WebContainer + Monaco integration
+## Roadmap
 
-The hardest part wasn't WebContainer itself — it's getting Monaco and xterm to coexist on the same surface. Monaco never gets direct keyboard access to the terminal pane. xterm handles raw terminal input. Monaco only activates when the cursor is in the editor.
-
-I used a layered DOM approach: xterm's terminal element sits behind Monaco's editor in z-order. When the user is in the editor, Monaco captures keystrokes. When the user clicks the terminal, a flag switches and xterm takes over. The Monaco inline completion provider checks cursor position before showing suggestions.
+- [x] v0.1 — WebContainers + Monaco + xterm + Ollama + NextAuth + MongoDB + Docker
+- [ ] v0.2 — hosted-AI fallback (OpenAI/Anthropic), project templates, settings UI
+- [ ] v0.3 — Postgres swap (drops MongoDB), git push from inside the WebContainer
+- [ ] v1.0 — multiplayer (Yjs CRDT over WebSocket)
 
 ---
 
-## Tests
+## Tests + CI
 
 ```bash
-npm test         # 23 tests: env-validate (8), ratelimit (7), utils (8)
-npm run build    # prisma generate + next build
-npm run lint      # ESLint
+npm test
+npm run lint
+npm run build
 ```
 
-CI runs: lint → prisma generate → test → build. Every PR, every push.
+CI runs lint → typecheck → tests → docker build. Publishes image to ghcr.io on tag.
 
 ---
 
-## Environment variables
+## Limits
 
-```env
-DATABASE_URL="mongodb://localhost:27017/chai-vibe"   # MongoDB connection
-AUTH_SECRET="..."                                    # NextAuth secret (min 32 chars)
-AUTH_GITHUB_ID="..."                                 # GitHub OAuth app client ID
-AUTH_GITHUB_SECRET="..."
-AUTH_GOOGLE_ID="..."                                 # Google OAuth app client ID
-AUTH_GOOGLE_SECRET="..."
-OLLAMA_BASE_URL="http://localhost:11434"             # Ollama endpoint
-```
-
-Ollama connectivity issues are warnings — the app starts without AI features if Ollama isn't available.
-
----
-
-## Deployment
-
-- **Vercel** — Next.js static shell (no server-side code execution)
-- **GitHub Container Registry** — Docker image for self-hosting
-- **`/api/health`** — `GET /api/health` returns `{ status: "ok", timestamp }` for load balancer checks
-- **Rate limiting** — 20 requests/minute per IP (sliding window, in-memory with Upstash Redis option)
-
----
-
-## What this project proves
-
-For a founding-engineer / senior IC role, this shows I can:
-
-- Build complex client-side architecture (WebContainers aren't trivial)
-- Integrate multiple APIs (Monaco, xterm, Ollama, NextAuth, Prisma)
-- Handle async initialization patterns (WebContainer.boot → mount → spawn)
-- Write production-grade TypeScript with strict mode
-- Design Docker Compose stacks for local development
-- Set up CI/CD with GitHub Actions
+- Desktop only. Mobile UI would need a different surface — not in scope for v0.x.
+- WebContainers refuses to boot on `http://` — production deploy MUST be HTTPS.
+- COOP/COEP/CORP headers required. Vercel, Caddy, Nginx setups in [DEPLOY.md](DEPLOY.md).
+- Browser memory pressure on big `node_modules` — IndexedDB quotas vary by browser. v0.2 adds a project-size meter.
 
 ---
 
 ## License
 
-Licensed under the Apache License 2.0 — see [LICENSE](LICENSE).
+Apache License 2.0 — see [LICENSE](LICENSE).
 
-## About
+## Author
 
-**Lakshyaraj Singh Rao** — Founding Engineer · AI Systems · Full-Stack · Jaipur → Bangalore + Mumbai + Remote
+**Lakshyaraj Singh Rao** — Full-Stack Engineer · AI Systems · Backend · DevOps
+Mumbai, India
 
-Portfolio: lakshyaraj.dev (coming) · GitHub: [@ykstorm](https://github.com/ykstorm) · LinkedIn: [/in/lakshyaraj](https://linkedin.com/in/lakshyaraj) · Email: raolakshyaraj@gmail.com
+[lakshyaraj.dev](https://lakshyaraj.dev) · [@ykstorm](https://github.com/ykstorm) · [LinkedIn](https://linkedin.com/in/lakshyaraj) · raolakshyaraj@gmail.com

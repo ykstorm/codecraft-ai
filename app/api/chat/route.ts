@@ -28,7 +28,9 @@ Always provide clear, practical answers. Use proper code formatting when showing
     .join("\n\n");
 
   try {
-    const response = await fetch("http://localhost:11434/api/generate", {
+    const response = await fetch(
+      `${process.env.OLLAMA_BASE_URL ?? "http://localhost:11434"}/api/generate`,
+      {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
