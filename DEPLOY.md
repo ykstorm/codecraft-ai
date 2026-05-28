@@ -42,9 +42,9 @@ Steps:
 1. Connect `github.com/ykstorm/codecraft-ai` to Vercel
 2. Env vars:
    - `AUTH_SECRET` — run `openssl rand -base64 32`
-   - `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` — Google Cloud Console OAuth
-   - `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET` — GitHub OAuth app
-   - `MONGODB_URI` — MongoDB Atlas (free tier)
+   - `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` — Google Cloud Console OAuth
+   - `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` — GitHub OAuth app
+   - `DATABASE_URL` — MongoDB Atlas (free tier)
    - `OLLAMA_BASE_URL` — your Ollama instance OR a hosted model gateway URL
 3. Custom domain: `codecraft.lakshyaraj.dev`
 4. OAuth redirect URIs:
