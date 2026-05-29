@@ -14,21 +14,7 @@ Live: **[codecraft.lakshyaraj.dev](https://codecraft.lakshyaraj.dev)** — sign 
 
 ## How this started
 
-I was writing the README for one of my other projects and wanted to test a code sample before pasting it in. The samples I had were dead — copied from my IDE, but disconnected from a runnable environment.
-
-Normally to test a snippet I'd:
-1. Open my laptop
-2. `mkdir test && cd test && npm init -y`
-3. `npm install express`
-4. Copy the snippet into a file
-5. `node server.js`
-6. Move on
-
-Twenty minutes of tooling for ten seconds of code. Every time.
-
-StackBlitz solves this. V8 + libuv compiled to WebAssembly, running in a Service Worker. Real Node.js, inside the browser tab, no server. Brilliant. But proprietary, and you have to live with their UI choices, their auth, their pricing tier when you scale beyond hobby use.
-
-So I built Codecraft. The OSS, self-hostable version of the same idea. Same WebContainers tech (Apache 2.0 license on theirs), my UI, my auth (NextAuth v5 with Google + GitHub), my persistence (MongoDB), my AI assistance (local Ollama).
+Real Node.js in your browser via WebContainers. Monaco for editing, xterm.js for terminal, Ollama for local AI completions. Self-hostable OSS alternative to StackBlitz.
 
 ---
 
