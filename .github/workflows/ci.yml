@@ -47,6 +47,8 @@ jobs:
         run: npm ci
 
       - name: Generate Prisma client
+        env:
+          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: npx prisma generate
 
       - name: Run tests
@@ -71,11 +73,14 @@ jobs:
         run: npm ci
 
       - name: Generate Prisma client
+        env:
+          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: npx prisma generate
 
       - name: Build app
+        env:
+          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: |
-          # Create dummy env for CI build — assertEnv() requires these
           echo "AUTH_SECRET=ci-dummy-secret-for-build-only" >> .env
           echo "AUTH_GITHUB_ID=000000000000000000000" >> .env
           echo "AUTH_GITHUB_SECRET=ci-dummy-secret" >> .env
