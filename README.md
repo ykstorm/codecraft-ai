@@ -3,12 +3,10 @@
 **Real Node.js in your browser. Monaco + WebContainers + Ollama. OSS, self-hostable.**
 
 [![CI](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml)
-[![Docker](https://img.shields.io/docker/v/ykstorm/codecraft-ai?label=docker)](https://github.com/ykstorm/codecraft-ai/pkgs/container/codecraft-ai)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Live](https://img.shields.io/badge/live-codecraft.lakshyaraj.dev-1a73e8)](https://codecraft.lakshyaraj.dev)
 [![GitHub stars](https://img.shields.io/github/stars/ykstorm/codecraft-ai)](https://github.com/ykstorm/codecraft-ai)
 
-Live: **[codecraft.lakshyaraj.dev](https://codecraft.lakshyaraj.dev)** — sign in, open the playground, `npm install`, run a real Node process in the tab.
+Self-host the full IDE:
 
 ---
 
