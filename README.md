@@ -153,10 +153,3 @@ CI runs lint → typecheck → tests → docker build. Publishes image to ghcr.i
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
-
-## Author
-
-**Lakshyaraj Singh Rao** — Full-Stack Engineer · AI Systems · Backend · DevOps
-Mumbai, India
-
-[lakshyaraj.dev](https://lakshyaraj.dev) · [@ykstorm](https://github.com/ykstorm) · [LinkedIn](https://linkedin.com/in/lakshyaraj) · raolakshyaraj@gmail.com
