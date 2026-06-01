@@ -13,6 +13,20 @@ const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
 ] as const;
 
+let _cached: Record<string, string> | null = null;
+
+export function getEnv(): Record<string, string> {
+  if (_cached) return _cached;
+  const result = validateEnv();
+  if (!result.valid) {
+    throw new Error(
+      `Missing required environment variables: ${result.missing.join(", ")}. Please set these before starting the server.`
+    );
+  }
+  _cached = Object.fromEntries(REQUIRED_ENV_VARS.map(k => [k, process.env[k]!]));
+  return _cached;
+}
+
 export function validateEnv(): EnvValidationResult {
   const missing: string[] = [];
 
@@ -29,13 +43,7 @@ export function validateEnv(): EnvValidationResult {
 }
 
 export function assertEnv(): void {
-  const result = validateEnv();
-  if (!result.valid) {
-    const missingList = result.missing.join(", ");
-    throw new Error(
-      `Missing required environment variables: ${missingList}. Please set these before starting the server.`
-    );
-  }
+  getEnv(); // throws lazily
 }
 
 // Auto-validate on module load in non-test environments
