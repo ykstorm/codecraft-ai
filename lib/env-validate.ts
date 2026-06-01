@@ -19,8 +19,12 @@ export interface EnvValidationResult {
 
 let _cached: Record<string, string> | null = null;
 
+export function resetCache(): void {
+  _cached = null;
+}
+
 export function getEnv(): Record<string, string> {
-  if (_cached) return _cached;
+  if (_cached !== null) return _cached;
   const result = validateEnv();
   if (!result.valid) {
     const missingList = result.missing.join(", ");
