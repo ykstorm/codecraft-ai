@@ -29,9 +29,7 @@ export function getEnv(): Record<string, string> {
         `Please set these variables in your .env file or environment.`
     );
   }
-  _cached = Object.fromEntries(result.missing.length === 0
-    ? REQUIRED_ENV_VARS.map(k => [k, process.env[k]!])
-    : []);
+  _cached = Object.fromEntries(REQUIRED_ENV_VARS.map(k => [k, process.env[k]!]));
   return _cached;
 }
 
