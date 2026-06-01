@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { resetCache } from '../lib/env-validate'
 import { validateEnv, assertEnv } from '../lib/env-validate'
 
 describe('validateEnv', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
+    resetCache()
   })
 
   it('returns valid when all required vars are present', () => {
@@ -54,6 +56,13 @@ describe('validateEnv', () => {
   })
 
   it('flags unset vars as missing', () => {
+    // Ensure all required env vars are unset (not just empty string)
+    delete process.env.AUTH_SECRET
+    delete process.env.AUTH_GITHUB_ID
+    delete process.env.AUTH_GOOGLE_ID
+    delete process.env.DATABASE_URL
+    resetCache()
+
     const result = validateEnv()
     expect(result.valid).toBe(false)
     expect(result.missing).toContain('AUTH_SECRET')
@@ -66,6 +75,7 @@ describe('validateEnv', () => {
 describe('assertEnv', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
+    resetCache()
   })
 
   it('does not throw when all vars present', () => {
