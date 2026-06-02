@@ -74,6 +74,8 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run e2e tests
+        env:
+          PLAYWRIGHT_BASE_URL: https://codecraft-ai.vercel.app
         run: npx playwright test
 
   build:
