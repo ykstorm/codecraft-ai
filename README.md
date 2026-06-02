@@ -7,9 +7,7 @@
 
 ## Status
 
-> 🚧 **Active build.** Landing + auth shell are live at [codecraft-ai.vercel.app](https://codecraft-ai.vercel.app).
-> The IDE workspace (`/playground/[id]`) is scaffolded but the supporting modules
-> (file tree, terminal, AI assist) are in active development.
+> ✅ **Phase 1 shipped.** IDE boots, file tree renders, Monaco editing works, changes persist to WebContainer fs. Terminal pane (xterm) and AI completions land in Phase 2.
 > See [ROADMAP.md](ROADMAP.md) for the build plan.
 
 ## What this is
