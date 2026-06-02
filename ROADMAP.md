@@ -1,6 +1,6 @@
 # Roadmap
 
-## v0.1 — Current: Landing + auth shell
+## v0.1 — Landing + auth shell
 - [x] Landing page at codecraft-ai.vercel.app
 - [x] Dashboard with sidebar navigation
 - [x] NextAuth v5 (Google + GitHub OAuth)
@@ -8,22 +8,21 @@
 - [x] Docker + docker-compose setup
 
 ## v0.2 — Core IDE workspace
-- [ ] WebContainer boot integration module (`src/modules/webcontainers/`)
-- [ ] File explorer pane (`src/modules/playground/components/playground-explorer`)
-- [ ] Monaco editor wiring (`src/modules/playground/components/playground-editor`)
-- [ ] Terminal pane with xterm.js
-- [ ] AI inline completions via monacopilot + Ollama
-- [ ] File save/load to IndexedDB VFS + MongoDB persistence
+- [x] WebContainer boot integration (`modules/webcontainers/hooks/useWebContainer.ts`)
+- [x] Monaco editor wiring (`modules/playground/components/playground-editor.tsx`)
+- [x] Terminal pane with xterm.js (`modules/webcontainers/components/terminal.tsx`)
+- [x] AI inline completions via monacopilot + Ollama (`/api/code-completion`)
+- [x] Project persistence via Prisma + MongoDB
 
 ## v0.3 — Feature completeness
 - [ ] Hosted AI fallback (OpenAI/Anthropic) for users without Ollama
-- [ ] Project templates
-- [ ] Settings UI
+- [ ] Project templates gallery
+- [ ] Settings UI (theme, Ollama URL config)
 
 ## v1.0 — Production-ready
-- [ ] CI/CD with full test suite
+- [ ] Full Playwright E2E suite (route `/playground/[id]` propagation verified)
 - [ ] Performance: project-size meter, memory pressure handling
-- [ ] Documentation: DEPLOY.md already covers Vercel/Caddy/Nginx headers
+- [ ] IndexedDB persistence layer (currently resets on tab close)
 
 ## Not planned (open issue first)
 - Multiplayer / CRDTs — large lift, not in current scope
