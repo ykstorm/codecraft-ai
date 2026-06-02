@@ -1,115 +1,53 @@
-# SPEC.md — CodeCraft AI
+# SPEC.md — Codecraft AI
 
-> 1-page summary. Verify every claim against actual code before committing.
-
----
-
-## What it is
-
-**CodeCraft AI** (UI name: "Chai Vibe Editor") is a browser-based IDE that runs real Node.js workloads client-side — no server-side compute for code execution. Built with Next.js 15, Monaco Editor, WebContainers, xterm.js, and Ollama for local AI assistance.
+> Verify every claim against actual code before committing.
 
 ---
 
 ## Problem it solves
 
-Browser-based IDEs traditionally either run code on remote servers (slow, expensive) or use limited emulators that can't handle real `npm install` + `node` workflows. CodeCraft eliminates the server entirely — the browser tab becomes the runtime via WebContainers (V8 Service Worker).
+Browser-based IDEs traditionally either run code on remote servers (slow, expensive latency) or use emulators that can't handle real `npm install` + `node` workflows. Codecraft runs entirely in the browser tab — real Node.js via WebContainers (V8 Service Worker), Monaco editor for editing, xterm.js for shell, local Ollama for AI completions. No cloud roundtrip for code execution.
 
----
+## What it is
 
-## Core features (verified in code)
+Self-hostable in-browser IDE with four primary surfaces:
+1. Monaco editor with AI inline completions (Tab to accept, Escape to dismiss)
+2. xterm.js terminal connected to WebContainer shell (full Node.js, not emulator)
+3. AI chat sidebar with 4 modes: chat / review / fix / optimize
+4. Project management (create, list, edit, delete, star)
+
+Stack: Next.js 15 · Monaco · @webcontainer/api · xterm.js · Ollama (local LLM) · NextAuth v5 (Google + GitHub) · Prisma + MongoDB · Docker + Vercel
+
+## Verified in code
 
 | Feature | Location |
 |---|---|
-| Monaco Editor with AI inline completions (`Ctrl+Space` / double-Enter) | `modules/playground/components/playground-editor.tsx` |
 | WebContainer boot + file system mount + npm install + node | `modules/webcontainers/hooks/useWebContainer.ts` |
-| xterm.js terminal with fit + search + web links addons | `modules/webcontainers/components/terminal.tsx` |
-| 4-mode AI chat (chat/review/fix/optimize) via Ollama | `modules/ai-chat/components/` + `app/api/chat/route.ts` |
-| NextAuth v5 with Google + GitHub OAuth | `auth.ts`, `middleware.ts` |
-| Prisma + MongoDB for project/user data persistence | `lib/db.ts` |
+| xterm.js terminal with keyboard input, command history (↑↓), Ctrl+C, resize, copy/download | `modules/webcontainers/components/terminal.tsx` |
+| AI completions via monacopilot → `/api/code-completion` → Ollama codellama | `modules/playground/hooks/useAISuggestion.tsx` + `app/api/code-completion/route.ts` |
+| 4-mode AI chat | `app/api/chat/route.ts` |
+| NextAuth v5 with Google + GitHub OAuth | `auth.ts` |
+| Prisma + MongoDB for project/user data | `lib/db.ts` |
 | Per-IP rate limiting (20 req/min sliding window) | `lib/ratelimit.ts` |
-| Environment validation on startup | `lib/env-validate.ts` |
-| Health endpoint `/api/health` | `src/app/api/health/route.ts` |
+| Health endpoint `/api/health` | `app/api/health/route.ts` |
 | Docker Compose: app + ollama + mongodb | `docker-compose.yml` |
 
----
+## Design decisions
 
-## Architecture
+1. **WebContainers for execution (not a server)** — The WebContainer API runs V8 inside a Service Worker in the browser tab. This means real `node`, real `npm install`, real processes. The tradeoff: WebContainers require Chromium-based browsers. Firefox/Safari won't work. This is a hard constraint, not a bug.
 
-```mermaid
-graph TD
-    Browser --> Next.js[Next.js 15 App\nServer-rendered shell]
-    Next.js --> Monaco[Monaco Editor\nCode editing surface]
-    Next.js --> xterm[xterm.js Terminal\nInteractive shell]
-    Next.js --> AIChat[AI Chat Sidebar\n4 modes]
-    Next.js --> WebContainer[WebContainer\nService Worker\nV8 Node.js runtime]
-    
-    WebContainer --> FS[IndexedDB\nVirtual FS]
-    WebContainer --> NPM[In-memory\nNPM registry]
-    WebContainer --> Processes[Process manager\nnode processes]
-    
-    AIChat --> Ollama[Ollama\nLocal LLM]
-    Ollama --> Models[codellama\nother models]
-    
-    Next.js --> Prisma[Prisma\nMongoDB]
-    Next.js --> Auth[NextAuth v5\nOAuth]
+2. **Local Ollama for completions (not OpenAI API)** — AI suggestions come from `localhost:11434` running Ollama. No external API calls means zero latency and zero cost for completions. The tradeoff: requires Ollama installed locally. If Ollama is unreachable, `/api/code-completion` returns `"// AI suggestion unavailable"` gracefully — the editor still works without AI.
 
-    subgraph "Client-side runtime"
-        WebContainer
-        FS
-        NPM
-        Processes
-    end
-```
+3. **Idempotent upserts via Prisma** — Playground creation uses `upsert` (no duplicate projects for same user+title). Auth callbacks handle account linking correctly.
 
----
+## Hardest part
 
-## Key design decisions
+`modules/webcontainers/components/terminal.tsx:43` — connecting xterm.js to WebContainer shell was non-trivial because WebContainer's `spawn` produces a process with stdin/stdout streams that xterm needs raw binary access to. The solution uses a `PtyService` wrapper that converts WebContainer process I/O into xterm-compatible UTF-8 streams, with command history stored in `useRef` across renders.
 
-1. **WebContainers over server-side execution** — Zero server cost for code execution. Tradeoff: ~10MB runtime download on first load, cached thereafter. Users need Ollama installed locally for AI features.
+## Out of scope
 
-2. **Ollama over external APIs** — Zero API costs, no latency to external services, code never leaves the browser. Fallback chain: Ollama → error logged as warning → app continues without AI.
-
-3. **Next.js App Router shell** — Server-side rendering gives fast initial load. WebContainer and Monaco load async after shell is painted. WebContainer is the "app" inside the shell.
-
-4. **4-mode AI with mode-specific prompts** — Chat, Review, Fix, Optimize each have distinct system prompts. Single Ollama endpoint handles all modes. Sliding window rate limit (20 req/min) protects the local LLM.
-
-5. **Docker Compose for full local stack** — `docker compose up` brings app + Ollama (GPU) + MongoDB. Production: Vercel (static shell) + Ollama/MongoDB as separate self-hosted or cloud services.
-
----
-
-## Tech stack (verified from package.json)
-
-- Next.js 15.5.18 (Turbopack), React 19.1.0, TypeScript strict
-- Tailwind v4, ShadCN UI, Radix UI
-- Monaco Editor (@monacopilot), xterm.js addons
-- WebContainers (@webcontainer/api 1.6.1)
-- Ollama (local), NextAuth v5 beta
-- Prisma 6.13 + MongoDB
-- Upstash rate limiting
-- Docker, Docker Compose, GitHub Actions
-
----
-
-## Test coverage
-
-- 23 tests passing (env-validate: 8, ratelimit: 7, utils: 8)
-- CI: lint → prisma generate → test
-- No test coverage for AI chat routes or WebContainer integration
-
----
-
-## Gaps identified
-
-- No pre-commit hooks
-- `src/lib/env-validate.ts` has unused `OPTIONAL_ENV_VARS` variable
-- `app/(root)/page.tsx` has unused `cn` import
-- `components/ui/theme-toggle.tsx` has unused `SunMoon` import
-- No ARCHITECTURE.md or polished INTERVIEW_REPORT.md in place
-
----
-
-## Licensing
-
-- LICENSE exists (MIT)
-- npm package: `codecraft-ai` (published to npm)
-- GitHub topics need updating: add `browser-ide`, `webcontainers`, `ollama`, `monaco-editor`, `nextjs`, `typescript`
+- Mobile/tablet support (WebContainers require desktop browser)
+- Collaborative editing (multiplayer)
+- Persistent file storage beyond IndexedDB (VFS resets on tab close — no persistence layer yet)
+- Cloud deployment of WebContainers (not architecturally possible — runs client-side)
+- Non-Chromium browser support

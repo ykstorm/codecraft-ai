@@ -113,7 +113,7 @@ const WebContainerPreview = ({
           );
         }
 
-        // @ts-ignore
+        // @ts-expect-error: transformToWebContainerFormat type mismatch with WebContainer fs API
         const files = transformToWebContainerFormat(templateData);
         setLoadingState((prev) => ({
           ...prev,

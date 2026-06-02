@@ -54,7 +54,7 @@ export const getAllPlaygroundForUser = async () => {
         user: true,
         Starmark:{
             where:{
-                userId:user?.id!
+                userId:user?.id ?? ""
             },
             select:{
                 isMarked:true
@@ -85,7 +85,7 @@ export const createPlayground = async (data: {
         title: title,
         description: description,
         template: template,
-        userId: user?.id!,
+        userId: user?.id ?? "",
       },
     });
 

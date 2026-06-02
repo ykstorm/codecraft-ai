@@ -74,7 +74,7 @@ interface FileExplorerState {
   updateFileContent: (fileId: string, content: string) => void;
 }
 
-// @ts-ignore
+// @ts-expect-error: create<ZustandStore> return type mismatch
 export const useFileExplorer = create<FileExplorerState>((set, get) => ({
   templateData: null,
   playgroundId: "",
