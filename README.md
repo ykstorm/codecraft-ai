@@ -7,7 +7,7 @@
 
 ## Status
 
-> ✅ **Phase 1 shipped.** IDE boots, file tree renders, Monaco editing works, changes persist to WebContainer fs. Terminal pane (xterm) and AI completions land in Phase 2.
+> ✅ **Phase 2 shipped.** Terminal (xterm.js) connected to WebContainer shell — keyboard input, command history, resize handling. AI completions via monacopilot → `/api/code-completion` → Ollama `codellama:latest` at `localhost:11434`. Graceful fallback when Ollama unreachable.
 > See [ROADMAP.md](ROADMAP.md) for the build plan.
 
 ## What this is
