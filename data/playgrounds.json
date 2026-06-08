@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "nextjs-starter",
+    "name": "Next.js Starter",
+    "tagline": "Full-stack React with App Router",
+    "description": "A minimal Next.js 15 App Router project with TypeScript, Tailwind CSS, and dynamic routing.",
+    "tags": ["Next.js", "TypeScript", "Tailwind"],
+    "demo": "https://codesandbox.io/p/github/vercel/next.js",
+    "featured": true
+  },
+  {
+    "slug": "rust-wasm",
+    "name": "Rust + WASM",
+    "tagline": "High-performance WebAssembly",
+    "description": "Rust compiled to WebAssembly running in the browser with a live REPL terminal.",
+    "tags": ["Rust", "WASM", "WebContainer"],
+    "demo": "https://rustwasm.github.io/docs/book/",
+    "featured": false
+  },
+  {
+    "slug": "python-repl",
+    "name": "Python REPL",
+    "tagline": "Browser-based Python interpreter",
+    "description": "Pyodide-powered Python REPL with matplotlib charting and numpy support.",
+    "tags": ["Python", "Pyodide", "REPL"],
+    "demo": "https://pyodide.org/en/stable/",
+    "featured": false
+  },
+  {
+    "slug": "express-api",
+    "name": "Express API",
+    "tagline": "Node.js REST API boilerplate",
+    "description": "Express.js REST API with middleware, routing, and in-memory storage. Ready to extend.",
+    "tags": ["Express", "Node.js", "REST"],
+    "demo": "https://expressjs.com/en/starter/generator.html",
+    "featured": false
+  }
+]
