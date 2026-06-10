@@ -1,7 +1,22 @@
+import { redirect } from "next/navigation";
 
-import { redirect } from 'next/navigation';
+import playgroundsData from "@/data/playgrounds.json";
+import { WebPlayground } from "@/components/playground/web-playground";
+import { ComingSoon } from "@/components/playground/coming-soon";
+import { TemplateNotFound } from "@/components/playground/template-not-found";
 
-// Server wrapper: validates id before any client component renders
+type Template = {
+  slug: string;
+  name: string;
+  tagline: string;
+  featured?: boolean;
+};
+
+const templates = playgroundsData as Template[];
+
+// Only nextjs-starter is wired end-to-end to a live WebContainer for now.
+const LIVE_SLUGS = new Set(["nextjs-starter"]);
+
 export default async function PlaygroundPage({
   params,
 }: {
@@ -9,11 +24,21 @@ export default async function PlaygroundPage({
 }) {
   const { id } = await params;
 
-  if (!id || id === 'undefined' || id === 'null' || id === '') {
-    redirect('/dashboard');
+  // Empty / sentinel ids → bounce to dashboard (keeps /playground/undefined a 307).
+  if (!id || id === "undefined" || id === "null") {
+    redirect("/dashboard");
   }
 
-  // Dynamically import client component to avoid SSR issues with WebContainers
-  const { PlaygroundContent } = await import('./playground-content');
-  return <PlaygroundContent id={id} />;
+  const template = templates.find((t) => t.slug === id);
+
+  // Unknown slug (e.g. /playground/test) → friendly 200, no 500.
+  if (!template) {
+    return <TemplateNotFound />;
+  }
+
+  if (LIVE_SLUGS.has(template.slug)) {
+    return <WebPlayground name={template.name} />;
+  }
+
+  return <ComingSoon name={template.name} tagline={template.tagline} />;
 }
