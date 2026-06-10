@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMetrics } from "@/lib/metrics-store";
-
-// Module-level guard: WebContainer.boot() may run only once per page.
-let booted = false;
+import { getWebContainer } from "@/lib/webcontainer";
 
 /**
  * <ShellDemo> — embedded read-only WebContainer running `ls && node -v`.
@@ -27,7 +25,6 @@ export function ShellDemo() {
       setLines((prev) => [...prev, ...s.split("\n").filter(Boolean)]);
 
     const run = async () => {
-      if (booted) return;
       if (typeof window === "undefined" || !window.crossOriginIsolated) {
         append("[info] cross-origin isolation off — static transcript");
         append("data  node_modules  package.json  README.md");
@@ -35,10 +32,8 @@ export function ShellDemo() {
         return;
       }
       try {
-        booted = true;
         const t0 = performance.now();
-        const { WebContainer } = await import("@webcontainer/api");
-        const wc = await WebContainer.boot();
+        const wc = await getWebContainer();
         const bootMs = Math.round(performance.now() - t0);
         setBoot(bootMs);
         await wc.mount({
