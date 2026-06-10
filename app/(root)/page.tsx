@@ -33,12 +33,7 @@ const ARSENAL = [
 ];
 
 function SectionLabel({ children }: { children: string }) {
-  return (
-    <p className="cc-label">
-      {"// "}
-      {children}
-    </p>
-  );
+  return <p className="cc-label">{`// ${children}`}</p>;
 }
 
 export default function Home() {
