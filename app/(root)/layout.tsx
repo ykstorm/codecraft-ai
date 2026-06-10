@@ -1,33 +1,35 @@
-import { cn } from "@/lib/utils";
-import {Footer} from "@/modules/home/footer";
-import { Header } from "@/modules/home/header";
+import Link from "next/link";
 import { Metadata } from "next";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const metadata: Metadata = {
-  title: {
-    template: "VibeCode - Editor ",
-    default: "Code Editor For VibeCoders - VibeCode",
-  },
+  title: "Codecraft — Backend Engineer · AI Infrastructure · DevOps",
 };
+
 export default function HomeLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <Header />
-                  <div
-        className={cn(
-          "absolute inset-0",
-          "[background-size:40px_40px]",
-          "[background-image:linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)]",
-          "dark:[background-image:linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)]",
-        )}
-      />
-       <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] dark:bg-black"/>
-      <main className="z-20 relative w-full pt-0 ">{children}</main>
-      <Footer />
-    </>
+    <div className="relative min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <Link href="/" className="font-mono text-sm font-semibold text-cyan-400">
+            ~/codecraft
+          </Link>
+          <nav className="flex items-center gap-5 font-mono text-xs text-muted-foreground">
+            <Link href="/playgrounds" className="hover:text-cyan-400">
+              playgrounds
+            </Link>
+            <Link href="/dashboard" className="hover:text-cyan-400">
+              dashboard
+            </Link>
+            <ThemeToggle />
+          </nav>
+        </div>
+      </header>
+      <main className="relative z-10">{children}</main>
+    </div>
   );
 }
