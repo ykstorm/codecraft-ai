@@ -1,82 +1,116 @@
 # Codecraft
 
-**In-browser IDE — real Node.js via WebContainers, Monaco editor, local Ollama for AI.**
+![Codecraft — in-browser IDE](.github/social-preview.png)
 
-[![CI](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+**In-browser IDE. WebContainers running Node.js in the tab. Monaco + xterm bound to the WebContainer shell.**
 
-## The problem
+[**Live → codecraft-ai-tau.vercel.app**](https://codecraft-ai-tau.vercel.app) · Next.js 15 · React 19 · TypeScript
 
-Remote code execution (Codespaces, code-server) means latency per keystroke and cost per container-hour. Emulators can't handle `npm install` + real Node.js. I needed a browser IDE that runs code without a server and without an emulator — WebContainers are the answer.
+---
 
-## What it does
+## Demo
 
-Monaco editor + xterm.js terminal running real Node.js in a browser tab via WebContainers (V8 in a Service Worker). Local Ollama handles AI completions — no API key needed, no network latency. Sign in with Google or GitHub; projects stored in MongoDB via Prisma.
+> ![demo](.github/demo.gif)
+>
+> **To record `.github/demo.gif`** (≈12s, no narration needed):
+> 1. Open [`/playgrounds`](https://codecraft-ai-tau.vercel.app/playgrounds)
+> 2. Click **Next.js Starter**
+> 3. Watch the WebContainer boot → `npm install` streams in the xterm terminal
+> 4. `npm run dev` starts → terminal prints `ready`
+> 5. Live preview iframe paints the running Next.js app
+>
+> Capture the terminal + preview side-by-side. Any screen recorder → GIF
+> (e.g. ScreenToGif on Windows) at ~12 fps, 1000px wide.
 
-[Live at codecraft-ai.vercel.app](https://codecraft-ai.vercel.app)
+What you're looking at: a real Node.js runtime booted **inside the browser tab**
+via [WebContainers](https://webcontainers.io). No server, no container host — the
+dev server runs on the visitor's machine, in a sandbox, isolated by COOP/COEP.
 
-## How it works
+---
+
+## What it is
+
+- **`/` — landing.** Teerth-styled, six sections (`// IDENTIFY`, `// PLAYGROUNDS`,
+  `// SHELL`, `// TECHNICAL ARSENAL`, `// LIVE TELEMETRY`, `// ESTABLISH CONNECTION`),
+  a one-time ASCII boot sequence, and a live binary canvas hero.
+- **`/playgrounds` — template gallery.** Four templates; **Next.js Starter** boots a
+  real dev server in your tab. The other three are honest "coming soon" pages.
+- **`/playground/[slug]` — the IDE surface.** WebContainer + xterm terminal + live
+  preview iframe, wired end-to-end for `nextjs-starter`.
+- **`/api/now` — liveness probe** returning today's date.
+
+---
+
+## Architecture
 
 ```mermaid
-graph TD
-    User([You]) --> Monaco[Monaco editor]
-    User --> Term[xterm.js terminal]
-    Monaco --> WC[WebContainer runtime<br/>V8 + Service Worker]
-    Term --> WC
-    WC --> FS[IndexedDB VFS]
-    WC --> NPM[in-memory npm]
-    WC --> Procs[Node.js processes]
-    Monaco -->|Tab to accept| Ollama[Ollama<br/>localhost:11434]
-    Term -->|process I/O| Ollama
+flowchart LR
+    CDN["Vercel Edge<br/>static assets + COOP/COEP headers"]
+    subgraph Browser["Browser tab — Cross-Origin Isolated (COOP: same-origin, COEP: require-corp)"]
+        UI["Next.js UI<br/>Monaco editor + xterm terminal"]
+        SW["Service Worker<br/>WebContainer runtime"]
+        WC["WebContainer<br/>in-tab VM"]
+        NODE["Node.js runtime<br/>npm install / next dev"]
+        IFR["Preview iframe<br/>from server-ready URL"]
+        UI -->|spawn + mount| WC
+        WC --> SW
+        WC --> NODE
+        NODE -->|:3000| IFR
+        UI -->|xterm stream| WC
+    end
+    CDN -->|HTML/JS| UI
 ```
 
-Key flows:
-- **Edit** → Monaco highlights syntax, AI suggestion appears inline (Tab to accept, Esc to dismiss)
-- **Run** → xterm.js connects to WebContainer shell — `node`, `npm install`, anything Node supports
-- **AI chat** → sidebar with 4 modes: chat / review / fix / optimize, routes to Ollama
-- **Project** → create/edit/delete/star projects, persisted in MongoDB
+The **COOP/COEP isolation boundary** is the whole game: `SharedArrayBuffer` (which
+WebContainers need) is only available to cross-origin-isolated documents. Codecraft
+sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy:
+require-corp` on **every** route (`next.config.ts` + `vercel.json`), so the
+WebContainer can boot on any page — including the `// SHELL` demo on the homepage.
 
-If Ollama isn't running, completions return `"// AI suggestion unavailable"` — editor keeps working without AI.
+---
 
-## Stack
+## Why WebContainers?
 
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 15 |
-| Editor | Monaco (VS Code) |
-| Runtime | @webcontainer/api |
-| Terminal | xterm.js |
-| AI | Ollama (local, no API key) |
-| Auth | NextAuth v5 (Google + GitHub) |
-| DB | MongoDB + Prisma |
-| Deployment | Docker + Vercel |
+- **vs. server-side containers** — zero infra cost and zero cold-start queue: the
+  runtime is the visitor's CPU, not a pod you pay for and scale.
+- **vs. iframe-only sandboxes** — those can't run `npm install` or a real Node
+  process; WebContainers give you an actual POSIX-ish filesystem and process model.
+- **vs. remote SSH/Codespaces** — no auth, no provisioning, no per-keystroke network
+  round-trip; the dev server URL is `localhost`-fast because it *is* local.
 
-## What's NOT here
+---
 
-- **Collaborative editing** — single-user, no multiplayer
-- **File persistence** — IndexedDB resets on tab close; no save-to-cloud layer yet
-- **Non-Chromium browsers** — WebContainers require Chrome/Edge/Brave; Firefox/Safari show a polite error
-- **Mobile/tablet** — desktop browser only
-- **Cloud WebContainers** — architecturally impossible; runs client-side
+## Tech stack & local dev
 
-## Try locally
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4 ·
+`@webcontainer/api` · `@xterm/xterm` · `@monaco-editor/react` · next-themes ·
+Prisma · NextAuth.
 
 ```bash
-git clone https://github.com/ykstorm/codecraft-ai && cd codecraft-ai
+git clone https://github.com/ykstorm/codecraft-ai
+cd codecraft-ai
 npm install
-cp .env.example .env.local
-
-# Terminal 1: Ollama
-ollama serve && ollama pull codellama:latest
-
-# Terminal 2: MongoDB
-docker run -d -p 27017:27017 mongo:7
-
-# Terminal 3: dev server
-npm run dev
-# Open http://localhost:3000
+npm run dev          # http://localhost:3000
 ```
 
-## License
+`npm run build` runs `prisma generate && next build`. COOP/COEP headers are applied
+in dev and prod, so WebContainers work locally too.
 
-Apache 2.0 — see [LICENSE](LICENSE).
+---
+
+## Honest limitations
+
+- **No native modules.** WebContainers run a WASM Node — anything needing a native
+  addon won't install or run: no `fs-extra` native bits, no `sqlite3`, no
+  `node-gyp`, no `sharp`, no `bcrypt`. Pure-JS deps only.
+- **~30s cold boot on first visit.** First WebContainer boot + `npm install` for the
+  Next.js template is slow; subsequent runs reuse the booted instance in-tab.
+- **Modern browser required.** Needs `SharedArrayBuffer` + cross-origin isolation —
+  current Chrome/Edge/Firefox. No mobile Safari guarantees.
+- **One template is live.** `nextjs-starter` boots end-to-end; `rust-wasm`,
+  `python-repl`, and `express-api` are deliberately stubbed as "coming soon" rather
+  than half-working.
+
+---
+
+<sub>Built by [Lakshyaraj Singh Rao](https://github.com/ykstorm) · Backend Engineer · AI Infrastructure · DevOps</sub>
