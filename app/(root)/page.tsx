@@ -8,28 +8,22 @@ import { ProjectCard, type Playground } from "@/components/ui/project-card";
 import { TechBadge } from "@/components/ui/tech-badge";
 import { ShellDemo } from "@/components/ui/shell-demo";
 import { LiveTelemetry } from "@/components/ui/live-telemetry";
-import { TerminalContact } from "@/components/ui/terminal-contact";
-import { ResumeButton } from "@/components/ui/resume-button";
 
 const playgrounds = playgroundsData as Playground[];
 
 const ARSENAL = [
   "TypeScript",
   "Node.js",
-  "Python",
-  "Rust",
-  "Go",
-  "PostgreSQL",
-  "Redis",
-  "Docker",
-  "Kubernetes",
-  "AWS",
-  "Terraform",
-  "Next.js",
   "WebContainers",
-  "Prisma",
-  "gRPC",
-  "CI/CD",
+  "Monaco",
+  "xterm.js",
+  "Next.js",
+  "React",
+  "Tailwind",
+  "Service Workers",
+  "SharedArrayBuffer",
+  "COOP/COEP",
+  "Vite",
 ];
 
 function SectionLabel({ children }: { children: string }) {
@@ -42,21 +36,16 @@ export default function Home() {
       <AsciiBoot />
 
       <div className="mx-auto max-w-5xl px-4">
-        {/* ── // IDENTIFY ──────────────────────────────────────── */}
+        {/* ── Product hero ─────────────────────────────────────── */}
         <section className="relative overflow-hidden py-24">
           <BinaryBackground />
           <div className="relative z-10">
-            <SectionLabel>IDENTIFY</SectionLabel>
-            <h1 className="mt-4 font-mono text-5xl font-extrabold leading-tight tracking-tight text-foreground sm:text-6xl">
-              Lakshyaraj Singh Rao
+            <h1 className="font-mono text-5xl font-extrabold leading-tight tracking-tight text-foreground sm:text-6xl">
+              Codecraft — <span className="text-cyan-300">in-browser IDE</span>
             </h1>
-            <p className="mt-4 font-mono text-lg text-cyan-300">
-              Backend Engineer · AI Infrastructure · DevOps
-            </p>
             <p className="mt-6 max-w-2xl font-mono text-sm leading-relaxed text-muted-foreground">
-              I build in-browser developer environments — WebContainer-powered
-              playgrounds, Monaco editors, and the infrastructure that keeps them
-              fast. Everything here runs live in your browser.
+              WebContainer-powered playgrounds, Monaco editor, xterm terminal —
+              all running live in your browser. No server, no setup.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
@@ -66,7 +55,6 @@ export default function Home() {
                 launch playgrounds
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
-              <ResumeButton />
             </div>
           </div>
         </section>
@@ -120,24 +108,6 @@ export default function Home() {
           </h2>
           <div className="mt-8 max-w-2xl">
             <LiveTelemetry />
-          </div>
-        </section>
-
-        {/* ── // ESTABLISH CONNECTION ──────────────────────────── */}
-        <section className="border-t border-border py-20">
-          <SectionLabel>ESTABLISH CONNECTION</SectionLabel>
-          <h2 className="mt-3 font-mono text-2xl font-bold text-foreground">
-            Open a channel
-          </h2>
-          <div className="mt-8 grid max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
-            <TerminalContact />
-            <div className="flex flex-col justify-center gap-4">
-              <p className="font-mono text-sm text-muted-foreground">
-                Prefer the static route? Grab the resume or jump straight into a
-                playground.
-              </p>
-              <ResumeButton />
-            </div>
           </div>
         </section>
 
