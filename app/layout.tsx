@@ -13,10 +13,24 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const PRODUCT_DESC =
+  "WebContainer-powered playgrounds running real Node.js in your browser. Monaco editor, xterm terminal, four starter templates.";
+
 export const metadata: Metadata = {
-  title: "Codecraft — Backend Engineer · AI Infrastructure · DevOps",
-  description:
-    "Codecraft: WebContainer-powered playgrounds, live telemetry, and an in-browser coding environment by Lakshyaraj Singh Rao.",
+  title: "Codecraft — In-browser IDE",
+  description: PRODUCT_DESC,
+  openGraph: {
+    title: "Codecraft — In-browser IDE",
+    description: PRODUCT_DESC,
+    url: "https://codecraft-ai-tau.vercel.app",
+    siteName: "Codecraft",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Codecraft — In-browser IDE",
+    description: PRODUCT_DESC,
+  },
 };
 
 export const dynamic = 'force-dynamic'
