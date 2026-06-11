@@ -40,6 +40,9 @@ export function ShellDemo() {
           "package.json": {
             file: { contents: '{"name":"codecraft-shell","type":"module"}' },
           },
+          "index.js": {
+            file: { contents: 'console.log("codecraft shell");\n' },
+          },
           "README.md": { file: { contents: "# codecraft" } },
         });
         const proc = await wc.spawn("sh", ["-c", "ls && node -v"]);
