@@ -1,33 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
-import { loader } from "@monaco-editor/react";
-import { useMetrics } from "@/lib/metrics-store";
+import { useEffect, useState } from "react";
+import { getWebContainer } from "@/lib/webcontainer";
 
 /**
- * <LiveTelemetry> — reads the WebContainer boot time (set by <ShellDemo>) and
- * measures Monaco editor load time on mount. Renders both as mono read-outs.
+ * <LiveTelemetry> — measures the real WebContainer boot time. Times from just
+ * before getWebContainer() to when the shared boot promise resolves, then renders
+ * the delta. Shows the "···" placeholder until the measurement lands. Monaco is
+ * intentionally NOT timed here — we don't load a 2MB editor on the home page.
  */
 export function LiveTelemetry() {
-  const bootMs = useMetrics((s) => s.webcontainerBootMs);
-  const monacoMs = useMetrics((s) => s.monacoLoadMs);
-  const setMonaco = useMetrics((s) => s.setMonacoLoadMs);
+  const [bootMs, setBootMs] = useState<number | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.crossOriginIsolated) return;
     let cancelled = false;
     const t0 = performance.now();
-    loader
-      .init()
+    getWebContainer()
       .then(() => {
-        if (!cancelled) setMonaco(Math.round(performance.now() - t0));
+        if (!cancelled) setBootMs(Math.round(performance.now() - t0));
       })
       .catch(() => {
-        /* offline / blocked — leave as pending */
+        /* boot failed — leave placeholder */
       });
     return () => {
       cancelled = true;
     };
-  }, [setMonaco]);
+  }, []);
 
   const fmt = (v: number | null) => (v == null ? "··· ms" : `${v} ms`);
 
@@ -36,10 +35,6 @@ export function LiveTelemetry() {
       <div className="cc-card p-5">
         <p className="font-mono text-xs text-muted-foreground">webcontainer.boot()</p>
         <p className="mt-2 font-mono text-2xl text-cyan-300">{fmt(bootMs)}</p>
-      </div>
-      <div className="cc-card p-5">
-        <p className="font-mono text-xs text-muted-foreground">monaco.load()</p>
-        <p className="mt-2 font-mono text-2xl text-cyan-300">{fmt(monacoMs)}</p>
       </div>
     </div>
   );
