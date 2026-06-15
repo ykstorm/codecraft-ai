@@ -2,7 +2,7 @@
 
 import "@xterm/xterm/css/xterm.css";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { getWebContainer } from "@/lib/webcontainer";
@@ -13,18 +13,21 @@ import { useMetrics } from "@/lib/metrics-store";
  * <WebPlayground> — boots a real WebContainer, mounts the nextjs-starter tree,
  * runs `npm install && npm run dev`, streams output into an xterm terminal and
  * shows the live dev server in an iframe once `server-ready` fires.
+ *
+ * WebContainers stream their Node runtime and every npm package from the
+ * *.staticblitz.com CDN. When a content blocker, VPN, or flaky connection cuts
+ * that off, the boot/install throws — we surface a readable reason plus a retry
+ * instead of a silently dead terminal.
  */
 export function WebPlayground({ name }: { name: string }) {
   const termHost = useRef<HTMLDivElement>(null);
-  const started = useRef(false);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [status, setStatus] = useState("booting WebContainer…");
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const setBoot = useMetrics((s) => s.setWebcontainerBootMs);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-
     let disposed = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let term: any;
@@ -43,8 +46,11 @@ export function WebPlayground({ name }: { name: string }) {
 
       try {
         if (typeof window === "undefined" || !window.crossOriginIsolated) {
-          write("cross-origin isolation is off — WebContainer cannot boot.\r\n");
           setStatus("unavailable");
+          setError(
+            "Cross-origin isolation is off, so WebContainer can't boot. It needs COOP/COEP headers and a Chromium-based browser (Chrome/Edge/Brave)."
+          );
+          write("cross-origin isolation is off — WebContainer cannot boot.\r\n");
           return;
         }
 
@@ -63,7 +69,10 @@ export function WebPlayground({ name }: { name: string }) {
         const code = await install.exit;
         if (disposed) return;
         if (code !== 0) {
-          setStatus(`install failed (${code})`);
+          setStatus("install failed");
+          setError(
+            `npm install exited ${code}. This usually means the *.staticblitz.com CDN was unreachable mid-install (blocker / VPN / unstable network). Retry on a stable connection.`
+          );
           write(`\r\nnpm install exited ${code}\r\n`);
           return;
         }
@@ -79,8 +88,15 @@ export function WebPlayground({ name }: { name: string }) {
         dev.output.pipeTo(new WritableStream({ write: (d) => write(d) }));
       } catch (e) {
         if (disposed) return;
-        write(`\r\nerror: ${e instanceof Error ? e.message : String(e)}\r\n`);
+        const raw = e instanceof Error ? e.message : String(e);
+        const networky = /fetch|network|disconnect|ERR_INTERNET|staticblitz|webcontainer-api/i.test(raw);
+        setError(
+          networky
+            ? "Can't reach the WebContainer runtime CDN (*.staticblitz.com). A browser content blocker, a VPN/proxy, or an unstable connection is the usual cause. Disable blockers for this site and retry."
+            : raw
+        );
         setStatus("error");
+        write(`\r\nerror: ${raw}\r\n`);
       }
     };
 
@@ -90,7 +106,16 @@ export function WebPlayground({ name }: { name: string }) {
       disposed = true;
       if (term) term.dispose();
     };
-  }, [setBoot]);
+  }, [setBoot, attempt]);
+
+  function retry() {
+    setError(null);
+    setServerUrl(null);
+    setStatus("booting WebContainer…");
+    setAttempt((a) => a + 1);
+  }
+
+  const failed = status === "error" || status === "unavailable" || status === "install failed";
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6">
@@ -102,13 +127,28 @@ export function WebPlayground({ name }: { name: string }) {
           <ArrowLeft className="h-4 w-4" /> playgrounds
         </Link>
         <div className="flex items-center gap-2 font-mono text-xs">
-          {!serverUrl && status !== "error" && status !== "unavailable" && (
+          {!serverUrl && !failed && (
             <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
           )}
           <span className="text-cyan-300">{name}</span>
           <span className="text-muted-foreground">· {status}</span>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 flex items-start justify-between gap-4 rounded-md border border-amber-500/40 bg-amber-500/5 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <p className="font-mono text-xs leading-relaxed text-amber-200/90">{error}</p>
+          </div>
+          <button
+            onClick={retry}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded border border-amber-500/40 px-2.5 py-1 font-mono text-xs text-amber-200 transition-colors hover:bg-amber-500/10"
+          >
+            <RefreshCw className="h-3 w-3" /> retry
+          </button>
+        </div>
+      )}
 
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="cc-card overflow-hidden">
@@ -130,7 +170,7 @@ export function WebPlayground({ name }: { name: string }) {
             />
           ) : (
             <div className="flex h-[60vh] items-center justify-center font-mono text-xs text-muted-foreground">
-              waiting for dev server…
+              {failed ? "dev server not running" : "waiting for dev server…"}
             </div>
           )}
         </div>

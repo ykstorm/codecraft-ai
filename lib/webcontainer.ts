@@ -10,9 +10,16 @@ let bootPromise: Promise<WebContainer> | null = null;
 
 export function getWebContainer(): Promise<WebContainer> {
   if (!bootPromise) {
-    bootPromise = import("@webcontainer/api").then(({ WebContainer }) =>
-      WebContainer.boot()
-    );
+    bootPromise = import("@webcontainer/api")
+      .then(({ WebContainer }) => WebContainer.boot())
+      .catch((err) => {
+        // Don't cache a rejected boot. A transient failure (e.g. a network blip
+        // reaching the *.staticblitz.com CDN) would otherwise wedge every later
+        // call with the same rejection until a full page reload. Clearing it lets
+        // the next getWebContainer() attempt a fresh boot.
+        bootPromise = null;
+        throw err;
+      });
   }
   return bootPromise;
 }
