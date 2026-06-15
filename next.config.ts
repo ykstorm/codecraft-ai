@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Required by the Dockerfile: it copies .next/standalone, which Next only
+  // emits when output is "standalone".
+  output: "standalone",
   images:{
     remotePatterns:[
       {
