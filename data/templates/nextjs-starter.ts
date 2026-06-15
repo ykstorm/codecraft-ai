@@ -15,7 +15,11 @@ export const nextjsStarterTree: FileSystemTree = {
           private: true,
           scripts: { dev: "next dev" },
           dependencies: {
-            next: "15.5.4",
+            // Next 15.5.x is broken inside WebContainers — its dev server throws
+            // "Expected workUnitAsyncStorage to have a store" on render.
+            // 15.4.x is the last line that boots cleanly in a WebContainer.
+            // refs: stackblitz/webcontainer-core#1978, vercel/next.js#84026
+            next: "15.4.11",
             react: "19.1.0",
             "react-dom": "19.1.0",
           },
