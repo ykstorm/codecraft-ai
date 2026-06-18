@@ -31,7 +31,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             image: user.image,
            
             accounts: {
-              // @ts-expect-error: next-auth type workaround
               create: {
                 type: account.type,
                 provider: account.provider,
@@ -74,7 +73,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               tokenType: account.token_type,
               scope: account.scope,
               idToken: account.id_token,
-              // @ts-expect-error: next-auth type workaround
               sessionState: account.session_state,
             },
           });
