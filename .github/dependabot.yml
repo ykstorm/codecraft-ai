@@ -4,9 +4,20 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
-
+    open-pull-requests-limit: 4
+    groups:
+      production:
+        dependency-type: "production"
+      development:
+        dependency-type: "development"
+    ignore:
+      # Major bumps break the build/tests; adopt them deliberately, not via bot.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
