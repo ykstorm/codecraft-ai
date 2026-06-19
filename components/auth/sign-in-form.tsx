@@ -1,5 +1,6 @@
-
 import React from "react";
+import { Chrome, Github } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,26 +10,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Chrome, Github } from "lucide-react";
 import { signIn } from "@/auth";
 
-async function handleGoogleSignIn(){
-"use server"
-await signIn("google")
+async function handleGoogleSignIn() {
+  "use server";
+  await signIn("google");
 }
 
-async function handleGithubSignIn(){
-"use server"
-await signIn("github")
+async function handleGithubSignIn() {
+  "use server";
+  await signIn("github");
 }
 
-const SignInFormClient = () => {
+const SignInForm = () => {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">
-          Sign In
-        </CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
         <CardDescription className="text-center">
           Choose your preferred sign-in method
         </CardDescription>
@@ -66,6 +64,4 @@ const SignInFormClient = () => {
   );
 };
 
-export default SignInFormClient;
-
-
+export default SignInForm;
