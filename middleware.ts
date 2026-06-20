@@ -16,7 +16,14 @@ export default auth((req) => {
 
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
 
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
+  // A publicRoutes entry ending in "/*" matches any path under that prefix,
+  // so the dynamic /playground/[id] routes are public without enumerating slugs.
+  const isPublicRoute = publicRoutes.some((route) => {
+    if (route.endsWith("/*")) {
+      return nextUrl.pathname.startsWith(route.slice(0, -1));
+    }
+    return nextUrl.pathname === route;
+  });
 
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 

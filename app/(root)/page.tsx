@@ -44,8 +44,14 @@ export default function Home() {
               Codecraft — <span className="text-cyan-300">in-browser IDE</span>
             </h1>
             <p className="mt-6 max-w-2xl font-mono text-sm leading-relaxed text-muted-foreground">
-              WebContainer-powered playgrounds, Monaco editor, xterm terminal —
-              all running live in your browser. No server, no setup.
+              A real Vite + React dev server boots inside your browser tab via
+              WebContainers — editable Monaco editor, an interactive xterm
+              terminal wired to a live shell, and a hot-reloading preview. No
+              backend, no install.
+            </p>
+            <p className="mt-3 max-w-2xl font-mono text-xs text-muted-foreground">
+              Cold boot is 30-90s on first visit (Node + npm install run in your
+              tab); return visits restore a cached snapshot in under 20s.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link

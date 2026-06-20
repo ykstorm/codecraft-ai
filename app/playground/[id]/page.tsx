@@ -14,8 +14,8 @@ type Template = {
 
 const templates = playgroundsData as Template[];
 
-// Only nextjs-starter is wired end-to-end to a live WebContainer for now.
-const LIVE_SLUGS = new Set(["nextjs-starter"]);
+// Only vite-react-starter is wired end-to-end to a live WebContainer for now.
+const LIVE_SLUGS = new Set(["vite-react-starter"]);
 
 export default async function PlaygroundPage({
   params,
