@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-/**
- * Friendly 200 page for unknown template slugs (e.g. /playground/test).
- * Replaces the old 500. Text "Template not found" is asserted by the gate.
- */
+// Friendly 200 for unknown template slugs. The smoke test asserts the
+// "Template not found" copy, so keep that wording.
 export function TemplateNotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 font-mono">

@@ -52,7 +52,6 @@ export function validateEnv(): EnvValidationResult {
   };
 }
 
-// Eager call removed — use getEnv() lazily at request time instead.
 export function assertEnv(): void {
   getEnv(); // throws if invalid
 }

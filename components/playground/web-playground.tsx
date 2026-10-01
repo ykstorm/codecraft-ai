@@ -11,18 +11,32 @@ import {
 import { useEffect } from "react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMetrics } from "@/lib/metrics-store";
+import { setWebcontainerBootMs } from "@/lib/metrics-store";
 import {
   useViteWebContainer,
   type BootPhase,
 } from "@/hooks/use-vite-webcontainer";
+import dynamic from "next/dynamic";
+
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { InteractiveTerminal } from "@/components/playground/interactive-terminal";
-import { CodeEditor } from "@/components/playground/code-editor";
+
+// Monaco and xterm are browser-only (they touch `window`, workers, and the DOM
+// on import), so they are loaded client-side with no SSR pass.
+const CodeEditor = dynamic(
+  () => import("@/components/playground/code-editor").then((m) => m.CodeEditor),
+  { ssr: false }
+);
+const InteractiveTerminal = dynamic(
+  () =>
+    import("@/components/playground/interactive-terminal").then(
+      (m) => m.InteractiveTerminal
+    ),
+  { ssr: false }
+);
 
 const PHASE_LABEL: Record<BootPhase, string> = {
   idle: "starting…",
@@ -36,13 +50,6 @@ const PHASE_LABEL: Record<BootPhase, string> = {
   unavailable: "unavailable",
 };
 
-/**
- * <WebPlayground> — boots a real WebContainer, mounts the Vite + React template
- * (or a cached snapshot), runs `npm install && npm run dev`, and presents a real
- * IDE: an editable Monaco editor whose debounced writes hot-reload the preview,
- * an interactive xterm terminal wired to a `jsh` shell, and a live preview
- * iframe — all in resizable panes. Mobile viewports get a desktop-only hint.
- */
 export function WebPlayground({ name }: { name: string }) {
   const isMobile = useIsMobile();
   const {
@@ -58,10 +65,9 @@ export function WebPlayground({ name }: { name: string }) {
     onOutput,
   } = useViteWebContainer();
 
-  const setBoot = useMetrics((s) => s.setWebcontainerBootMs);
   useEffect(() => {
-    if (timings.bootMs != null) setBoot(timings.bootMs);
-  }, [timings.bootMs, setBoot]);
+    if (timings.bootMs != null) setWebcontainerBootMs(timings.bootMs);
+  }, [timings.bootMs]);
 
   const failed =
     phase === "error" || phase === "unavailable";
@@ -157,6 +163,14 @@ export function WebPlayground({ name }: { name: string }) {
                   title="preview"
                   src={serverUrl}
                   className="min-h-0 flex-1 w-full bg-white"
+                  // Sandbox the untrusted preview. It may run scripts, use its
+                  // own origin, post forms, open modals and popups — but it must
+                  // not navigate or redirect the top-level window, and it gets no
+                  // downloads. `allow=""` denies every powerful feature; the
+                  // no-referrer policy keeps our URL out of its requests.
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
+                  referrerPolicy="no-referrer"
+                  allow=""
                 />
               ) : (
                 <div className="flex min-h-0 flex-1 items-center justify-center font-mono text-xs text-muted-foreground">

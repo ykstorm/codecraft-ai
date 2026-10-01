@@ -123,8 +123,7 @@
   }
 }
 
-/* ── Teerth design DNA ─────────────────────────────────────────── */
-/* Accent cyan #22d3ee ONLY. Tokens in :root, no @apply of undefined utils. */
+/* Theme tokens. Accent cyan is the only accent colour. */
 :root {
   --accent-cyan: #22d3ee;
 }
@@ -163,15 +162,4 @@
   transform: scale(1.02);
   border-color: var(--accent-cyan);
   box-shadow: none;
-}
-
-/* Flagship card: cyan ring + glow. */
-.cc-flagship {
-  border-color: rgba(34, 211, 238, 0.5);
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.6), 0 0 28px rgba(34, 211, 238, 0.25);
-}
-.cc-flagship:hover {
-  transform: scale(1.02);
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.9), 0 0 40px rgba(34, 211, 238, 0.35);
 }

@@ -1,23 +1,91 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
+import type { FileSystemTree } from "@webcontainer/api";
 
 import { viteReactEditableFiles, viteReactTree } from "@/data/templates/vite-react";
 
-/** Pull an initial file's contents out of the static template tree by path. */
-function templateFileContents(path: string): string {
-  const parts = path.split("/");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let node: any = viteReactTree;
-  for (let i = 0; i < parts.length; i++) {
-    const seg = parts[i];
-    if (i === parts.length - 1) {
-      return node[seg]?.file?.contents ?? "";
+// Self-host Monaco. Without this, @monaco-editor/react loads the editor from a
+// jsDelivr CDN at runtime; pointing its loader at the bundled `monaco-editor`
+// package keeps everything same-origin (no third-party CDN, CSP-clean) and the
+// language workers ship in .next/static. `new Worker(new URL(...))` is the
+// bundler-native worker form (webpack 5 / Turbopack both resolve it).
+if (typeof window !== "undefined") {
+  (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment =
+    {
+      getWorker(_workerId: string, label: string) {
+        switch (label) {
+          case "json":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/json/json.worker.js",
+                import.meta.url
+              )
+            );
+          case "css":
+          case "scss":
+          case "less":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/css/css.worker.js",
+                import.meta.url
+              )
+            );
+          case "html":
+          case "handlebars":
+          case "razor":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/html/html.worker.js",
+                import.meta.url
+              )
+            );
+          case "typescript":
+          case "javascript":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/typescript/ts.worker.js",
+                import.meta.url
+              )
+            );
+          default:
+            return new Worker(
+              new URL(
+                "monaco-editor/editor/editor.worker.js",
+                import.meta.url
+              )
+            );
+        }
+      },
+    };
+  loader.config({ monaco });
+}
+
+// Flatten the static template tree once into a path -> contents map, so the
+// editor can seed a file's initial contents without walking the tree per lookup.
+function flattenTree(
+  tree: FileSystemTree,
+  prefix = ""
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, node] of Object.entries(tree)) {
+    const path = prefix ? `${prefix}/${name}` : name;
+    if ("file" in node) {
+      const contents = "contents" in node.file ? node.file.contents : "";
+      out[path] = typeof contents === "string" ? contents : "";
+    } else if ("directory" in node) {
+      Object.assign(out, flattenTree(node.directory, path));
     }
-    node = node[seg]?.directory ?? {};
   }
-  return "";
+  return out;
+}
+
+const TEMPLATE_FILES = flattenTree(viteReactTree);
+
+function templateFileContents(path: string): string {
+  return TEMPLATE_FILES[path] ?? "";
 }
 
 function languageFor(path: string): string {
@@ -29,14 +97,6 @@ function languageFor(path: string): string {
   return "plaintext";
 }
 
-/**
- * <CodeEditor> — an editable Monaco editor over the WebContainer's files. A
- * file tree on the left switches the active file; edits are debounced (~300ms)
- * and written into the WebContainer FS, so Vite's HMR hot-reloads the preview.
- *
- * Files are seeded from the static template, then re-read live from the
- * container once it's ready (so snapshot-restored edits show their real state).
- */
 export function CodeEditor({
   containerReady,
   writeFile,

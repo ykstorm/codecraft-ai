@@ -1,16 +1,21 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
+
+const emptySubscribe = () => () => {};
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Client-mount gate (server snapshot false, client true) — avoids rendering a
+  // theme-dependent icon during SSR, which would hydrate-mismatch. No effect, so
+  // no setState-in-effect.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   if (!mounted) {
     return null;

@@ -1,27 +1,23 @@
-version: "3.9"
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: chai-vibe-app
+    container_name: codecraft-app
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL:-mongodb://mongodb:27017/chai-vibe}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://mongodb:27017/codecraft}
       - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_TRUST_HOST=true
       - AUTH_GITHUB_ID=${AUTH_GITHUB_ID}
       - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET}
       - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
       - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
     depends_on:
       mongodb:
-        condition: service_healthy
-      ollama:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "scripts/docker-healthcheck.sh"]
@@ -30,28 +26,11 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - chai-network
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: chai-vibe-ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - chai-network
+      - codecraft-network
 
   mongodb:
-    image: mongo:7
-    container_name: chai-vibe-mongodb
+    image: mongo:7.0.14
+    container_name: codecraft-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -64,12 +43,11 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - chai-network
+      - codecraft-network
 
 volumes:
-  ollama-data:
   mongodb-data:
 
 networks:
-  chai-network:
+  codecraft-network:
     driver: bridge

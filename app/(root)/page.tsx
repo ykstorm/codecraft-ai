@@ -11,7 +11,7 @@ import { LiveTelemetry } from "@/components/ui/live-telemetry";
 
 const playgrounds = playgroundsData as Playground[];
 
-const ARSENAL = [
+const STACK = [
   "TypeScript",
   "Node.js",
   "WebContainers",
@@ -41,17 +41,18 @@ export default function Home() {
           <BinaryBackground />
           <div className="relative z-10">
             <h1 className="font-mono text-5xl font-extrabold leading-tight tracking-tight text-foreground sm:text-6xl">
-              Codecraft — <span className="text-cyan-300">in-browser IDE</span>
+              Codecraft, <span className="text-cyan-300">in-browser IDE</span>
             </h1>
             <p className="mt-6 max-w-2xl font-mono text-sm leading-relaxed text-muted-foreground">
-              A real Vite + React dev server boots inside your browser tab via
-              WebContainers — editable Monaco editor, an interactive xterm
-              terminal wired to a live shell, and a hot-reloading preview. No
-              backend, no install.
+              A real Vite + React dev server runs inside your browser tab via
+              WebContainers. You get an editable Monaco editor, an interactive
+              xterm terminal wired to a live shell, and a hot-reloading preview.
+              No backend, no install.
             </p>
             <p className="mt-3 max-w-2xl font-mono text-xs text-muted-foreground">
-              Cold boot is 30-90s on first visit (Node + npm install run in your
-              tab); return visits restore a cached snapshot in under 20s.
+              Cold boot takes 30 to 90 seconds on the first visit (Node and npm
+              install run in your tab). Return visits restore a cached snapshot in
+              under 20 seconds.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
@@ -95,12 +96,12 @@ export default function Home() {
 
         {/* ── // TECHNICAL ARSENAL ─────────────────────────────── */}
         <section className="border-t border-border py-20">
-          <SectionLabel>TECHNICAL ARSENAL</SectionLabel>
+          <SectionLabel>STACK</SectionLabel>
           <h2 className="mt-3 font-mono text-2xl font-bold text-foreground">
             Stack
           </h2>
           <div className="mt-8 flex flex-wrap gap-3">
-            {ARSENAL.map((s) => (
+            {STACK.map((s) => (
               <TechBadge key={s} label={s} />
             ))}
           </div>
@@ -118,8 +119,8 @@ export default function Home() {
         </section>
 
         <footer className="border-t border-border py-10 font-mono text-xs text-muted-foreground">
-          <span className="text-cyan-400">{"//"}</span> codecraft — built live in
-          the browser
+          <span className="text-cyan-400">{"//"}</span> codecraft, runs in the
+          browser
         </footer>
       </div>
     </>

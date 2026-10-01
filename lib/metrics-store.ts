@@ -1,17 +1,26 @@
-import { create } from "zustand";
+import { useSyncExternalStore } from "react";
 
-type MetricsState = {
-  webcontainerBootMs: number | null;
-  monacoLoadMs: number | null;
-  setWebcontainerBootMs: (ms: number) => void;
-  setMonacoLoadMs: (ms: number) => void;
-};
+// Tiny shared store for the measured WebContainer boot time. The // SHELL demo
+// writes it; the // LIVE TELEMETRY panel reads it. Module-level so the two
+// sibling components share one value without a state-management dependency.
+let bootMs: number | null = null;
+const listeners = new Set<() => void>();
 
-/** Shared live-telemetry store. ShellDemo writes the WebContainer boot time,
- *  the telemetry section reads it; Monaco load time is written on first load. */
-export const useMetrics = create<MetricsState>((set) => ({
-  webcontainerBootMs: null,
-  monacoLoadMs: null,
-  setWebcontainerBootMs: (ms) => set({ webcontainerBootMs: ms }),
-  setMonacoLoadMs: (ms) => set({ monacoLoadMs: ms }),
-}));
+export function setWebcontainerBootMs(ms: number): void {
+  bootMs = ms;
+  for (const l of listeners) l();
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/** Subscribe to the measured boot time (null until the shell demo runs). */
+export function useWebcontainerBootMs(): number | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => bootMs,
+    () => null
+  );
+}

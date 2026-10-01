@@ -2,7 +2,7 @@
 
 **In-browser IDE. A real Vite + React dev server boots inside the tab via WebContainers — editable Monaco, an interactive xterm shell, and a hot-reloading preview.**
 
-[**Live → codecraft-ai-tau.vercel.app**](https://codecraft-ai-tau.vercel.app) · Next.js 15 · React 19 · TypeScript
+[**Live → codecraft-ai-tau.vercel.app**](https://codecraft-ai-tau.vercel.app) · Next.js 16 · React 19 · TypeScript
 
 [![CI](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -45,7 +45,7 @@ flowchart LR
     CDN -->|HTML/JS| UI
 ```
 
-The **COOP/COEP isolation boundary** is the whole game: `SharedArrayBuffer` (which WebContainers need) is only available to cross-origin-isolated documents. Codecraft sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on **every** route (`next.config.ts` + `vercel.json`), so the WebContainer can boot on any page — including the `// SHELL` demo on the homepage.
+The **COOP/COEP isolation boundary** is the whole game: `SharedArrayBuffer` (which WebContainers need) is only available to cross-origin-isolated documents. Codecraft sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on **every** route (`next.config.ts` + `lib/security-headers.ts`), so the WebContainer can boot on any page — including the `// SHELL` demo on the homepage.
 
 ---
 
@@ -59,7 +59,7 @@ The **COOP/COEP isolation boundary** is the whole game: `SharedArrayBuffer` (whi
 
 ## Tech stack & local dev
 
-**Stack:** Next.js 15 (App Router, the host app) · React 19 · TypeScript · Tailwind v4 · `@webcontainer/api` · `@xterm/xterm` + `@xterm/addon-fit` · `@monaco-editor/react` · `react-resizable-panels` · next-themes · Prisma · NextAuth. The **playground template** booted inside the WebContainer is Vite + React 18.
+**Stack:** Next.js 16 (App Router, the host app) · React 19 · TypeScript · Tailwind v4 · `@webcontainer/api` · `@xterm/xterm` + `@xterm/addon-fit` · `@monaco-editor/react` with a self-hosted `monaco-editor` (no CDN) · `react-resizable-panels` · next-themes · Prisma · NextAuth. The **playground template** booted inside the WebContainer is Vite + React 18.
 
 ```bash
 git clone https://github.com/ykstorm/codecraft-ai
@@ -71,7 +71,7 @@ npm run dev            # http://localhost:3000
 
 Then open **http://localhost:3000/playground/vite-react-starter** — the landing page and playground are public, so no sign-in is needed to reach the editor.
 
-`npm run build` runs `prisma generate && next build`. COOP/COEP headers are applied in dev and prod (`next.config.ts` + `vercel.json`), so WebContainers work locally too.
+`npm run build` runs `prisma generate && next build`. COOP/COEP headers are applied in dev and prod (`next.config.ts` + `lib/security-headers.ts`), so WebContainers work locally too.
 
 ### Environment
 
@@ -83,7 +83,6 @@ The landing page and playground need **no** secrets to run. The auth-gated `/das
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub sign-in | GitHub OAuth app |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google sign-in | Google OAuth client |
 | `DATABASE_URL` | Prisma (users/accounts) | any Prisma-supported DB |
-| `OLLAMA_BASE_URL` | `/api/code-completion`, `/api/chat` | optional; defaults to the docker-compose service |
 
 ---
 

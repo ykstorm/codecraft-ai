@@ -29,8 +29,8 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
   ${bits}
   <text x="72" y="120" font-family="Consolas,'Courier New',monospace" font-size="26" letter-spacing="3" fill="${cyan}">// CODECRAFT</text>
   <text x="68" y="250" font-family="Consolas,'Courier New',monospace" font-size="96" font-weight="bold" fill="#e5e7eb">Codecraft</text>
-  <text x="72" y="312" font-family="Consolas,'Courier New',monospace" font-size="30" fill="${cyan}">Backend Engineer · AI Infrastructure · DevOps</text>
-  <text x="72" y="372" font-family="Consolas,'Courier New',monospace" font-size="26" fill="#8b8b8b">In-browser IDE · WebContainers running Node.js in the tab</text>
+  <text x="72" y="312" font-family="Consolas,'Courier New',monospace" font-size="30" fill="${cyan}">In-browser IDE</text>
+  <text x="72" y="372" font-family="Consolas,'Courier New',monospace" font-size="26" fill="#8b8b8b">WebContainers running Node.js in the tab</text>
   ${bootLines
     .map(
       (l, i) =>

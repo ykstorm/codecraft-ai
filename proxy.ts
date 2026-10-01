@@ -39,13 +39,13 @@ export default auth((req) => {
   }
 
   if (!isLoggedIn && !isPublicRoute) {
-    return Response.redirect(new URL("/auth/sign-in", nextUrl));
+    // 307 keeps the method (and matches the smoke test); the default would be 302.
+    return Response.redirect(new URL("/auth/sign-in", nextUrl), 307);
   }
 
   return null;
 });
 
 export const config = {
-  // copied from clerk
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };

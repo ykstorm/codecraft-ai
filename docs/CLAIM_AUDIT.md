@@ -38,14 +38,14 @@ browser and is verified on the Vercel preview (see "User actions" in the PR).
 | Mobile → desktop-only hint, not a broken boot | `components/playground/web-playground.tsx:47` (`useIsMobile`) → `MobileFallback` | resize viewport <768px |
 | LIVE TELEMETRY shows the **measured** boot time | `components/ui/live-telemetry.tsx:16-26` (`performance.now()` around `getWebContainer()`); playground header: `web-playground.tsx` (`timings.totalMs`) | code: no hardcoded number; placeholder `··· ms` until measured |
 | `// SHELL` runs a real `ls && node -v` | `components/ui/shell-demo.tsx` (`wc.spawn("sh", ["-c","ls && node -v"])`) | Vercel preview: real output streams |
-| Landing + playground are public by design | `routes.ts:11-16` (`publicRoutes` incl. `/playground/*`) + `middleware.ts:21-27` (prefix match) | `npm run dev` probe: `/` and `/playground/vite-react-starter` → 200 without auth |
-| `/dashboard`, `/settings` are auth-gated | `routes.ts:21-24` + `middleware.ts:40-42` (redirect to `/auth/sign-in`) | code: not in `publicRoutes` |
-| COOP/COEP cross-origin isolation on every route | `next.config.ts` headers + `vercel.json` | browser: `window.crossOriginIsolated === true` |
+| Landing + playground are public by design | `routes.ts:11-16` (`publicRoutes` incl. `/playground/*`) + `proxy.ts:21-27` (prefix match) | `npm run dev` probe: `/` and `/playground/vite-react-starter` → 200 without auth |
+| `/dashboard`, `/settings` are auth-gated | `routes.ts:21-24` + `proxy.ts:40-42` (redirect to `/auth/sign-in`) | code: not in `publicRoutes` |
+| COOP/COEP cross-origin isolation on every route | `next.config.ts` + `lib/security-headers.ts` | browser: `window.crossOriginIsolated === true` |
 | No native modules / WASM Node limit | inherent to `@webcontainer/api` | documented limitation |
 
 ## Honesty notes
 
-- The host app is **Next.js 15**; the template booted **inside** the WebContainer
+- The host app is **Next.js 16**; the template booted **inside** the WebContainer
   is **Vite + React 18**. Next.js is not run inside the WebContainer (its dev
   server is slow/unstable there — see `data/templates/vite-react.ts` header).
 - No boot-time number is hardcoded anywhere. The only displayed timings come from

@@ -1,10 +1,15 @@
 # Deploying Codecraft
 
 Two modes:
-1. **Vercel** — fastest path to a live URL, free tier supports it
-2. **Self-hosted Docker** — full control, MongoDB + Ollama you own
 
-WebContainers need specific HTTP headers (Cross-Origin-Opener-Policy + Cross-Origin-Embedder-Policy) — Vercel needs these added via `vercel.json`, self-hosted needs them in Caddy/Nginx.
+1. **Vercel** — fastest path to a live URL; the free tier is enough.
+2. **Self-hosted Docker** — full control, with a MongoDB you own.
+
+WebContainers need `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`
+on every response. Those headers are defined once in `lib/security-headers.ts`
+and applied by `next.config.ts`, so they ship in dev, on Vercel, and in the
+Docker image without any extra config. A reverse proxy in front must not strip
+them.
 
 ---
 
@@ -16,65 +21,43 @@ Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Resource-Policy: cross-origin
 ```
 
-These enable `SharedArrayBuffer` which WebContainers need. Missing any of them = WebContainer silently fails to boot with no clear error.
+Missing any of them and the WebContainer silently fails to boot with no clear
+error.
 
 ---
 
-## 1. Vercel deploy
+## 1. Vercel
 
-`vercel.json`:
-```json
-{
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" },
-        { "key": "Cross-Origin-Resource-Policy", "value": "cross-origin" }
-      ]
-    }
-  ]
-}
-```
-
-Steps:
-1. Connect `github.com/ykstorm/codecraft-ai` to Vercel
-2. Env vars:
-   - `AUTH_SECRET` — run `openssl rand -base64 32`
+1. Connect `github.com/ykstorm/codecraft-ai` to Vercel. No `vercel.json` is
+   needed — the headers come from `next.config.ts`.
+2. Env vars (the landing page and playground need none of these; they gate only
+   `/dashboard`, `/settings`, and the auth callbacks):
+   - `AUTH_SECRET` — `openssl rand -base64 32`
    - `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` — Google Cloud Console OAuth
    - `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` — GitHub OAuth app
-   - `DATABASE_URL` — MongoDB Atlas (free tier)
-   - `OLLAMA_BASE_URL` — your Ollama instance OR a hosted model gateway URL
-3. Custom domain: `codecraft.lakshyaraj.dev`
-4. OAuth redirect URIs:
-   - Google: `https://codecraft.lakshyaraj.dev/api/auth/callback/google`
-   - GitHub: `https://codecraft.lakshyaraj.dev/api/auth/callback/github`
+   - `DATABASE_URL` — MongoDB Atlas (free tier) or any Prisma-supported DB
+3. OAuth redirect URIs:
+   - Google: `https://<your-domain>/api/auth/callback/google`
+   - GitHub: `https://<your-domain>/api/auth/callback/github`
 
-Deploy. Wait ~2 min. Visit URL.
-
-**Note on Ollama in production:** Vercel doesn't run Ollama. Options:
-- Self-host Ollama on a small EC2 / Hetzner / Fly machine, point `OLLAMA_BASE_URL` at it
-- Use a hosted Ollama proxy (e.g. fly-hosted Ollama instance)
-- Swap to OpenAI/Anthropic via a one-line client change (v0.3 roadmap makes this configurable)
+Deploy, wait a couple of minutes, open the URL.
 
 ---
 
 ## 2. Self-hosted Docker
 
-Existing docker-compose.yml already covers app + MongoDB + Ollama. To deploy to a single host (VPS):
+`docker-compose.yml` covers the app plus MongoDB.
 
 ```bash
 # On a fresh Ubuntu VPS
-ssh root@your-vps
 apt update && apt install -y docker.io docker-compose-plugin git
 git clone https://github.com/ykstorm/codecraft-ai && cd codecraft-ai
 cp .env.example .env
-# Edit .env with prod secrets
+# Edit .env with prod secrets (AUTH_SECRET, OAuth, DATABASE_URL)
 
 # Optional: put Caddy in front for TLS + the COOP/COEP/CORP headers
 cat > /etc/caddy/Caddyfile <<EOF
-codecraft.lakshyaraj.dev {
+your-domain {
   reverse_proxy localhost:3000
   header {
     Cross-Origin-Opener-Policy "same-origin"
@@ -87,22 +70,19 @@ EOF
 docker compose up -d
 ```
 
-Resources: ~2 GB RAM for the app + Ollama + MongoDB. Hetzner CX21 ($5/mo) is the sweet spot.
-
 ---
 
 ## 3. Smoke test after deploy
 
-1. Open https://codecraft.lakshyaraj.dev — landing loads
-2. Sign in with Google or GitHub
-3. Open the playground
-4. WebContainer must boot — you see the file tree and a terminal prompt
-5. In the terminal: `npm init -y && npm install express`
-6. Create a file `server.js` with `console.log('hello')`
-7. Run `node server.js` — output appears in terminal
-8. Open the AI chat sidebar, switch to "Chat" mode, ask "What does this code do?" — Ollama responds
+1. Open the site — the landing page loads.
+2. Open `/playground/vite-react-starter` without signing in — the IDE boots a
+   WebContainer and shows the editor, terminal, and preview.
+3. In the terminal: `npm install dayjs` — it installs.
+4. Edit `src/App.jsx` — the preview hot-reloads.
+5. Hit `/api/now` — JSON with today's date.
 
-If any step fails, the most likely culprit is the COOP/COEP/CORP headers. Check browser DevTools → Network → response headers on the main HTML doc.
+If the WebContainer never boots, the most likely culprit is the COOP/COEP/CORP
+headers — check DevTools → Network → the main document's response headers.
 
 ---
 
@@ -110,32 +90,7 @@ If any step fails, the most likely culprit is the COOP/COEP/CORP headers. Check 
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| WebContainer silently doesn't boot | Missing COOP/COEP/CORP | Add headers (see top of this doc) |
-| Service Worker won't register | http:// (not https://) | WebContainers refuse non-HTTPS in production |
-| OAuth callback error | Wrong redirect URI registered | Update OAuth app settings with exact prod URL |
-| Ollama "connection refused" | Wrong `OLLAMA_BASE_URL` | Verify Ollama is reachable from the app container/runtime |
-| MongoDB "auth failed" | Wrong connection string | Verify user + password URL-encoded |
-| IndexedDB quota exceeded | User has many big files saved | Surface a "manage projects" UI to delete old projects |
-
----
-
-## 5. Production hardening checklist
-
-- [ ] OAuth secrets in Vercel env vars (not committed)
-- [ ] MongoDB Atlas IP allowlist locked to Vercel's egress (or use VPC peering)
-- [ ] Rate limits on `/api/auth` and `/api/projects` (use upstash-redis adapter)
-- [ ] Sentry DSN set for error capture
-- [ ] Plausible / Vercel Analytics for traffic
-- [ ] CSP header (in addition to COOP/COEP/CORP)
-- [ ] Periodic IndexedDB quota audit per user
-
----
-
-## 6. Launch
-
-After live URL works:
-- LinkedIn (linkedin-post.md Variant A)
-- X (Variant C)
-- Show HN: "Codecraft — real Node.js in your browser, OSS"
-- Vercel community
-- Reddit r/webdev
+| WebContainer silently doesn't boot | Missing COOP/COEP/CORP | Confirm the headers on the HTML document |
+| Service Worker won't register | `http://` not `https://` | WebContainers refuse non-HTTPS in production |
+| OAuth callback error | Wrong redirect URI registered | Match the OAuth app's URI to the deployed URL |
+| MongoDB "auth failed" | Wrong connection string | URL-encode the user + password |

@@ -1,30 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import playgroundsData from "@/data/playgrounds.json";
+
+const PLAYGROUND_COUNT = (playgroundsData as unknown[]).length;
 
 const BOOT_LINES = [
   "$ codecraft --boot",
   "[ ok ] mounting /dev/webcontainer",
   "[ ok ] linking monaco-editor",
   "[ ok ] cross-origin isolation: enabled",
-  "[ ok ] loading playgrounds … 4 found",
-  "[ ready ] welcome, operator",
+  `[ ok ] loading playgrounds … ${PLAYGROUND_COUNT} found`,
+  "[ ready ] codecraft",
 ];
 
 const SESSION_KEY = "cc_boot_played";
 
 /**
- * <AsciiBoot> — one-time-per-session boot sequence overlay. Gated on
- * sessionStorage so it plays once, then never again until a new tab/session.
+ * One-time-per-session boot overlay. Gated on sessionStorage so it plays once,
+ * then not again until a new tab/session.
  */
 export function AsciiBoot() {
-  const [active, setActive] = useState(false);
   const [shown, setShown] = useState(0);
+  const [done, setDone] = useState(false);
+  const startedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (startedRef.current) return;
+    startedRef.current = true;
     if (sessionStorage.getItem(SESSION_KEY)) return; // already played this session
-    setActive(true);
 
     let line = 0;
     const id = window.setInterval(() => {
@@ -34,7 +40,7 @@ export function AsciiBoot() {
         window.clearInterval(id);
         window.setTimeout(() => {
           sessionStorage.setItem(SESSION_KEY, "1");
-          setActive(false);
+          setDone(true);
         }, 650);
       }
     }, 260);
@@ -42,7 +48,8 @@ export function AsciiBoot() {
     return () => window.clearInterval(id);
   }, []);
 
-  if (!active) return null;
+  // Nothing before the first tick, and nothing once the sequence has finished.
+  if (done || shown === 0) return null;
 
   return (
     <div

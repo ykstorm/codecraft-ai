@@ -27,11 +27,6 @@ export default function PlaygroundsPage() {
                   </h3>
                   <p className="text-xs text-muted-foreground font-mono mt-1">{t.tagline}</p>
                 </div>
-                {t.featured && (
-                  <span className="text-[10px] font-mono bg-cyan-400/10 text-cyan-400 border border-cyan-400/30 px-2 py-0.5 rounded">
-                    FLAGSHIP
-                  </span>
-                )}
               </div>
               <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{t.description}</p>
               <div className="flex flex-wrap gap-2 mt-4">
