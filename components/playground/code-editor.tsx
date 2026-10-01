@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Editor, { loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
+import type { FileSystemTree } from "@webcontainer/api";
 
 import { viteReactEditableFiles, viteReactTree } from "@/data/templates/vite-react";
 
@@ -62,19 +63,29 @@ if (typeof window !== "undefined") {
   loader.config({ monaco });
 }
 
-/** Pull an initial file's contents out of the static template tree by path. */
-function templateFileContents(path: string): string {
-  const parts = path.split("/");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let node: any = viteReactTree;
-  for (let i = 0; i < parts.length; i++) {
-    const seg = parts[i];
-    if (i === parts.length - 1) {
-      return node[seg]?.file?.contents ?? "";
+// Flatten the static template tree once into a path -> contents map, so the
+// editor can seed a file's initial contents without walking the tree per lookup.
+function flattenTree(
+  tree: FileSystemTree,
+  prefix = ""
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, node] of Object.entries(tree)) {
+    const path = prefix ? `${prefix}/${name}` : name;
+    if ("file" in node) {
+      const contents = "contents" in node.file ? node.file.contents : "";
+      out[path] = typeof contents === "string" ? contents : "";
+    } else if ("directory" in node) {
+      Object.assign(out, flattenTree(node.directory, path));
     }
-    node = node[seg]?.directory ?? {};
   }
-  return "";
+  return out;
+}
+
+const TEMPLATE_FILES = flattenTree(viteReactTree);
+
+function templateFileContents(path: string): string {
+  return TEMPLATE_FILES[path] ?? "";
 }
 
 function languageFor(path: string): string {

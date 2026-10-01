@@ -11,7 +11,7 @@ import {
 import { useEffect } from "react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMetrics } from "@/lib/metrics-store";
+import { setWebcontainerBootMs } from "@/lib/metrics-store";
 import {
   useViteWebContainer,
   type BootPhase,
@@ -65,10 +65,9 @@ export function WebPlayground({ name }: { name: string }) {
     onOutput,
   } = useViteWebContainer();
 
-  const setBoot = useMetrics((s) => s.setWebcontainerBootMs);
   useEffect(() => {
-    if (timings.bootMs != null) setBoot(timings.bootMs);
-  }, [timings.bootMs, setBoot]);
+    if (timings.bootMs != null) setWebcontainerBootMs(timings.bootMs);
+  }, [timings.bootMs]);
 
   const failed =
     phase === "error" || phase === "unavailable";

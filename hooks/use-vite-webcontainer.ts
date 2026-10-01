@@ -57,20 +57,63 @@ type UseViteWebContainer = {
 
 const SLUG = "vite-react-starter";
 
-/**
- * Decide whether a snapshot of `bytes` should be persisted. Rejects anything
- * over the hard cap, or anything that would push estimated storage past half the
- * origin quota. Emits a one-line reason when it declines.
- */
-async function snapshotFitsBudget(
-  bytes: number,
-  emit: (s: string) => void
-): Promise<boolean> {
+/** FNV-1a hash of the template so a changed template invalidates old snapshots. */
+function hashTree(tree: unknown): string {
+  const s = JSON.stringify(tree);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+const SNAPSHOT_KEY = `${SLUG}-${hashTree(viteReactTree)}`;
+
+type Emit = (s: string) => void;
+
+/** A boot failure whose message is already fit to show the user. */
+class BootError extends Error {}
+
+/** Turn an unexpected thrown error into a user-facing message. */
+function classifyBootError(err: unknown): string {
+  if (err instanceof BootError) return err.message;
+  const raw = err instanceof Error ? err.message : String(err);
+  const networky =
+    /fetch|network|disconnect|ERR_INTERNET|staticblitz|webcontainer-api/i.test(
+      raw
+    );
+  return networky
+    ? "Can't reach the WebContainer runtime CDN (*.staticblitz.com). A browser content blocker, a VPN/proxy, or an unstable connection is the usual cause. Disable blockers for this site and retry."
+    : raw;
+}
+
+/** Export the FS and cache it, but only when it fits the storage budget. */
+async function cacheSnapshot(
+  wc: WebContainer,
+  key: string,
+  emit: Emit
+): Promise<void> {
+  try {
+    const exported = (await wc.export("/", { format: "binary" })) as Uint8Array;
+    if (await snapshotFitsBudget(exported.byteLength, emit)) {
+      await saveSnapshot(key, exported);
+      emit("$ snapshot cached for fast reboot\r\n");
+    }
+  } catch (err) {
+    // Surface, don't swallow: a quota/export failure is useful signal.
+    const msg = err instanceof Error ? err.message : String(err);
+    emit(`\r\n[warn] snapshot not cached: ${msg}\r\n`);
+  }
+}
+
+/** Reject a snapshot that's over the hard cap or would overrun the quota. */
+async function snapshotFitsBudget(bytes: number, emit: Emit): Promise<boolean> {
   if (bytes > MAX_SNAPSHOT_BYTES) {
     emit(
-      `\r\n[info] snapshot ${(bytes / 1024 / 1024).toFixed(
-        0
-      )}MB exceeds ${MAX_SNAPSHOT_BYTES / 1024 / 1024}MB cap — not cached\r\n`
+      `\r\n[info] snapshot ${(bytes / 1024 / 1024).toFixed(0)}MB exceeds ${
+        MAX_SNAPSHOT_BYTES / 1024 / 1024
+      }MB cap — not cached\r\n`
     );
     return false;
   }
@@ -92,11 +135,84 @@ async function snapshotFitsBudget(
   return true;
 }
 
+/** Boot (or reuse) the shared WebContainer and return it plus the boot time. */
+async function bootContainer(
+  emit: Emit
+): Promise<{ wc: WebContainer; bootMs: number }> {
+  emit("$ boot webcontainer\r\n");
+  const bootStart = performance.now();
+  const wc = await getWebContainer();
+  return { wc, bootMs: Math.round(performance.now() - bootStart) };
+}
+
 /**
- * Boots a WebContainer, mounts the Vite + React template, and either restores a
- * cached node_modules snapshot (fast path) or runs `npm install` (cold path),
- * then starts the Vite dev server and spawns an interactive `jsh` shell.
+ * Either restore the cached node_modules snapshot (fast path) or mount the
+ * template and run `npm install` (cold path, then cache the result).
  */
+async function restoreOrInstall(
+  wc: WebContainer,
+  opts: { forceCold: boolean; emit: Emit; setPhase: (p: BootPhase) => void }
+): Promise<{ fromSnapshot: boolean; installMs: number | null }> {
+  const { forceCold, emit, setPhase } = opts;
+  const snapshot = forceCold ? null : await loadSnapshot(SNAPSHOT_KEY);
+
+  if (snapshot) {
+    setPhase("restoring-snapshot");
+    emit("$ restore cached node_modules snapshot\r\n");
+    await wc.mount(snapshot);
+    return { fromSnapshot: true, installMs: null };
+  }
+
+  setPhase("mounting");
+  emit(`$ mount ${SLUG}\r\n`);
+  await wc.mount(viteReactTree);
+
+  setPhase("installing");
+  emit("$ npm install\r\n");
+  const installStart = performance.now();
+  const install = await wc.spawn("npm", ["install"]);
+  install.output.pipeTo(new WritableStream({ write: (d) => emit(d) }));
+
+  let code: number;
+  try {
+    // Bound the install: a wedged npm (unreachable CDN mid-stream) must not hang
+    // the boot forever. On timeout, kill the process and fail.
+    code = await withTimeout(install.exit, INSTALL_TIMEOUT_MS, "npm install", () =>
+      install.kill()
+    );
+  } catch (err) {
+    if (err instanceof TimeoutError) {
+      emit("\r\nerror: npm install timed out — stopped\r\n");
+      throw new BootError(
+        `npm install did not finish within ${
+          INSTALL_TIMEOUT_MS / 1000
+        }s and was stopped. This usually means the *.staticblitz.com CDN stalled mid-install (content blocker / VPN / unstable network). Retry on a stable connection.`
+      );
+    }
+    throw err;
+  }
+  if (code !== 0) {
+    throw new BootError(
+      `npm install exited ${code}. This usually means the *.staticblitz.com CDN was unreachable mid-install (content blocker / VPN / unstable network). Retry on a stable connection.`
+    );
+  }
+
+  await cacheSnapshot(wc, SNAPSHOT_KEY, emit);
+  return { fromSnapshot: false, installMs: Math.round(performance.now() - installStart) };
+}
+
+/** Start the Vite dev server and an interactive `jsh` shell. */
+async function startDevAndShell(
+  wc: WebContainer,
+  emit: Emit
+): Promise<{ dev: WebContainerProcess; shell: WebContainerProcess }> {
+  emit("$ npm run dev\r\n");
+  const dev = await wc.spawn("npm", ["run", "dev"]);
+  dev.output.pipeTo(new WritableStream({ write: (d) => emit(d) }));
+  const shell = await wc.spawn("jsh", [], { terminal: { cols: 80, rows: 24 } });
+  return { dev, shell };
+}
+
 export function useViteWebContainer(): UseViteWebContainer {
   const [phase, setPhase] = useState<BootPhase>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +259,7 @@ export function useViteWebContainer(): UseViteWebContainer {
   );
 
   const reset = useCallback(() => {
-    void clearSnapshot(SLUG);
+    void clearSnapshot(SNAPSHOT_KEY);
     setServerUrl(null);
     setShell(null);
     setError(null);
@@ -167,11 +283,9 @@ export function useViteWebContainer(): UseViteWebContainer {
 
       try {
         setPhase("booting");
-        emit("$ boot webcontainer\r\n");
         const bootStart = performance.now();
-        const wc = await getWebContainer();
+        const { wc, bootMs } = await bootContainer(emit);
         if (disposed) return;
-        const bootMs = Math.round(performance.now() - bootStart);
         setContainer(wc);
         setTimings((t) => ({ ...t, bootMs }));
 
@@ -188,113 +302,29 @@ export function useViteWebContainer(): UseViteWebContainer {
           emit(`\r\n[ready] dev server on :${port}\r\n`);
         });
 
-        const snapshot = forceCold ? null : await loadSnapshot(SLUG);
-
-        if (snapshot) {
-          setPhase("restoring-snapshot");
-          emit("$ restore cached node_modules snapshot\r\n");
-          await wc.mount(snapshot);
-          if (disposed) return;
-          setTimings((t) => ({ ...t, fromSnapshot: true }));
-        } else {
-          setPhase("mounting");
-          emit("$ mount vite-react-starter\r\n");
-          await wc.mount(viteReactTree);
-          if (disposed) return;
-
-          setPhase("installing");
-          emit("$ npm install\r\n");
-          const installStart = performance.now();
-          const install = await wc.spawn("npm", ["install"]);
-          install.output.pipeTo(
-            new WritableStream({ write: (d) => emit(d) })
-          );
-          let code: number;
-          try {
-            // Bound the install: a wedged npm (unreachable CDN mid-stream) must
-            // not hang the boot forever. On timeout, kill the process and fail.
-            code = await withTimeout(
-              install.exit,
-              INSTALL_TIMEOUT_MS,
-              "npm install",
-              () => install.kill()
-            );
-          } catch (err) {
-            if (disposed) return;
-            if (err instanceof TimeoutError) {
-              setPhase("error");
-              setError(
-                `npm install did not finish within ${
-                  INSTALL_TIMEOUT_MS / 1000
-                }s and was stopped. This usually means the *.staticblitz.com CDN stalled mid-install (content blocker / VPN / unstable network). Retry on a stable connection.`
-              );
-              emit(`\r\nerror: npm install timed out — stopped\r\n`);
-              return;
-            }
-            throw err;
-          }
-          if (disposed) return;
-          if (code !== 0) {
-            setPhase("error");
-            setError(
-              `npm install exited ${code}. This usually means the *.staticblitz.com CDN was unreachable mid-install (content blocker / VPN / unstable network). Retry on a stable connection.`
-            );
-            return;
-          }
-          setTimings((t) => ({
-            ...t,
-            installMs: Math.round(performance.now() - installStart),
-          }));
-
-          // Cache node_modules for sub-20s return-visit boots — but only when it
-          // comfortably fits the storage budget. A snapshot that overflows quota
-          // just wastes an export and a failed write.
-          try {
-            const exported = (await wc.export("/", {
-              format: "binary",
-            })) as Uint8Array;
-            const fits = await snapshotFitsBudget(exported.byteLength, emit);
-            if (fits) {
-              await saveSnapshot(SLUG, exported);
-              emit("$ snapshot cached for fast reboot\r\n");
-            }
-          } catch (err) {
-            // Surface, don't swallow: a quota/export failure is useful signal.
-            const msg = err instanceof Error ? err.message : String(err);
-            emit(`\r\n[warn] snapshot not cached: ${msg}\r\n`);
-          }
-        }
-
-        if (disposed) return;
-        setPhase("starting-dev");
-        emit("$ npm run dev\r\n");
-        const dev = await wc.spawn("npm", ["run", "dev"]);
-        devProcRef.current = dev;
-        dev.output.pipeTo(new WritableStream({ write: (d) => emit(d) }));
-
-        // Spawn an interactive shell so the user can type real commands.
-        const sh = await wc.spawn("jsh", [], {
-          terminal: { cols: 80, rows: 24 },
+        const { fromSnapshot, installMs } = await restoreOrInstall(wc, {
+          forceCold,
+          emit,
+          setPhase,
         });
+        if (disposed) return;
+        setTimings((t) => ({ ...t, fromSnapshot, installMs: installMs ?? t.installMs }));
+
+        setPhase("starting-dev");
+        const { dev, shell: sh } = await startDevAndShell(wc, emit);
         if (disposed) {
+          dev.kill();
           sh.kill();
           return;
         }
+        devProcRef.current = dev;
         shellProcRef.current = sh;
         setShell(sh);
       } catch (e) {
         if (disposed) return;
-        const raw = e instanceof Error ? e.message : String(e);
-        const networky =
-          /fetch|network|disconnect|ERR_INTERNET|staticblitz|webcontainer-api/i.test(
-            raw
-          );
         setPhase("error");
-        setError(
-          networky
-            ? "Can't reach the WebContainer runtime CDN (*.staticblitz.com). A browser content blocker, a VPN/proxy, or an unstable connection is the usual cause. Disable blockers for this site and retry."
-            : raw
-        );
+        setError(classifyBootError(e));
+        const raw = e instanceof Error ? e.message : String(e);
         emit(`\r\nerror: ${raw}\r\n`);
       }
     }

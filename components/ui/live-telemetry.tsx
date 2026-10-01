@@ -1,6 +1,6 @@
 "use client";
 
-import { useMetrics } from "@/lib/metrics-store";
+import { useWebcontainerBootMs } from "@/lib/metrics-store";
 
 /**
  * <LiveTelemetry> — shows the real WebContainer boot time measured elsewhere on
@@ -10,7 +10,7 @@ import { useMetrics } from "@/lib/metrics-store";
  * "···" placeholder. No number is ever hardcoded.
  */
 export function LiveTelemetry() {
-  const bootMs = useMetrics((s) => s.webcontainerBootMs);
+  const bootMs = useWebcontainerBootMs();
 
   const fmt = (v: number | null) => (v == null ? "··· ms" : `${v} ms`);
 

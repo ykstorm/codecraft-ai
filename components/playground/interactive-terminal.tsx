@@ -2,6 +2,8 @@
 
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
+import type { Terminal } from "@xterm/xterm";
+import type { FitAddon } from "@xterm/addon-fit";
 import type { WebContainerProcess } from "@webcontainer/api";
 
 export function InteractiveTerminal({
@@ -13,10 +15,9 @@ export function InteractiveTerminal({
   registerSink: (sink: (chunk: string) => void) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const termRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fitRef = useRef<any>(null);
+  const termRef = useRef<Terminal | null>(null);
+  const fitRef = useRef<FitAddon | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
   const writerRef = useRef<WritableStreamDefaultWriter<string> | null>(null);
 
   // Create the terminal once.
@@ -65,9 +66,7 @@ export function InteractiveTerminal({
       };
       window.addEventListener("resize", onResize);
 
-      // Stash cleanup on the term instance.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (term as any)._cleanup = () => {
+      cleanupRef.current = () => {
         window.removeEventListener("resize", onResize);
         term.dispose();
       };
@@ -75,10 +74,10 @@ export function InteractiveTerminal({
 
     return () => {
       disposed = true;
-      const term = termRef.current;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (term?._cleanup) (term as any)._cleanup();
+      cleanupRef.current?.();
+      cleanupRef.current = null;
       termRef.current = null;
+      fitRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Play } from "lucide-react";
-import { useMetrics } from "@/lib/metrics-store";
+import { setWebcontainerBootMs } from "@/lib/metrics-store";
 import { getWebContainer } from "@/lib/webcontainer";
 
 /**
@@ -17,7 +17,6 @@ export function ShellDemo() {
   const [lines, setLines] = useState<string[]>(["$ ls && node -v"]);
   const [running, setRunning] = useState(false);
   const [started, setStarted] = useState(false);
-  const setBoot = useMetrics((s) => s.setWebcontainerBootMs);
   const startedRef = useRef(false);
 
   const append = (s: string) =>
@@ -39,7 +38,7 @@ export function ShellDemo() {
       const t0 = performance.now();
       const wc = await getWebContainer();
       const bootMs = Math.round(performance.now() - t0);
-      setBoot(bootMs);
+      setWebcontainerBootMs(bootMs);
       await wc.mount({
         "package.json": {
           file: { contents: '{"name":"codecraft-shell","type":"module"}' },
