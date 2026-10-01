@@ -4,12 +4,6 @@ import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
 import type { WebContainerProcess } from "@webcontainer/api";
 
-/**
- * <InteractiveTerminal> — an xterm.js terminal wired to a real WebContainer
- * shell process (`jsh`). Boot/install logs stream in via `registerSink`; once a
- * `shell` is provided, keystrokes are piped to the shell's stdin so the user can
- * run `ls`, `cat package.json`, `npm install dayjs`, etc. and see real output.
- */
 export function InteractiveTerminal({
   shell,
   registerSink,

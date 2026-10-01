@@ -31,7 +31,7 @@ export function ShellDemo() {
 
     try {
       if (typeof window === "undefined" || !window.crossOriginIsolated) {
-        append("[info] cross-origin isolation off — static transcript");
+        append("[info] cross-origin isolation off: static transcript");
         append("data  node_modules  package.json  README.md");
         append("v20.x");
         return;

@@ -1,14 +1,7 @@
-/**
- * Routes accessible to the public — no authentication required.
- *
- * The landing page, the playground list, and the live WebContainer playgrounds
- * are deliberately public: codecraft is a portfolio demo and a recruiter must be
- * able to open the editor without signing in. An entry that ends in "/*" matches
- * any path under that prefix (see `isPublicRoute` in proxy.ts), which is how
- * the dynamic `/playground/[id]` routes are covered.
- *
- * @type {string[]}
- */
+// Public routes — no authentication. The landing page, the gallery, and the
+// live playgrounds are deliberately open so the editor opens without signing in.
+// An entry ending in "/*" matches any path under that prefix (see isPublicRoute
+// in proxy.ts), which covers the dynamic /playground/[id] routes.
 export const publicRoutes: string[] = [
   "/",
   "/playgrounds",
@@ -17,27 +10,18 @@ export const publicRoutes: string[] = [
   "/api/now",
 ];
 
-/**
- * Routes that require authentication.
- * @type {string[]}
- */
+// Routes that require authentication.
 export const protectedRoutes: string[] = [
   "/dashboard",
   "/settings",
 ];
 
-/**
- * Auth routes. A signed-in user hitting one of these is redirected home.
- * @type {string[]}
- */
+// Auth routes. A signed-in user hitting one of these is redirected home.
 export const authRoutes: string[] = [
   "/auth/sign-in",
 ];
 
-/**
- * Routes under this prefix (the NextAuth handlers) always bypass the auth gate.
- * @type {string}
- */
+// Anything under this prefix (the NextAuth handlers) bypasses the auth gate.
 export const apiAuthPrefix: string = "/api/auth";
 
-export const DEFAULT_LOGIN_REDIRECT = "/"; // redirect home after login
+export const DEFAULT_LOGIN_REDIRECT = "/";

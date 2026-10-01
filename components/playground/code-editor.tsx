@@ -86,14 +86,6 @@ function languageFor(path: string): string {
   return "plaintext";
 }
 
-/**
- * <CodeEditor> — an editable Monaco editor over the WebContainer's files. A
- * file tree on the left switches the active file; edits are debounced (~300ms)
- * and written into the WebContainer FS, so Vite's HMR hot-reloads the preview.
- *
- * Files are seeded from the static template, then re-read live from the
- * container once it's ready (so snapshot-restored edits show their real state).
- */
 export function CodeEditor({
   containerReady,
   writeFile,

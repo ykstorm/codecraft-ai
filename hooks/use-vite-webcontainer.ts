@@ -96,8 +96,6 @@ async function snapshotFitsBudget(
  * Boots a WebContainer, mounts the Vite + React template, and either restores a
  * cached node_modules snapshot (fast path) or runs `npm install` (cold path),
  * then starts the Vite dev server and spawns an interactive `jsh` shell.
- *
- * All real timings are measured with performance.now() — nothing hardcoded.
  */
 export function useViteWebContainer(): UseViteWebContainer {
   const [phase, setPhase] = useState<BootPhase>("idle");

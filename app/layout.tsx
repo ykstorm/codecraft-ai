@@ -13,7 +13,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const PRODUCT_DESC =
-  "An in-browser IDE. A real Vite + React dev server runs in the browser tab via WebContainers — Monaco editor, xterm terminal, and a live preview.";
+  "An in-browser IDE. A real Vite + React dev server runs in the browser tab via WebContainers, with a Monaco editor, an xterm terminal, and a live preview.";
 
 export const metadata: Metadata = {
   title: "Codecraft, in-browser IDE",

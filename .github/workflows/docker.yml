@@ -19,6 +19,6 @@ jobs:
           context: .
           push: false
           load: true
-          tags: codecraft-ai:test
+          tags: codecraft:test
       - name: Confirm image exists
-        run: docker image inspect codecraft-ai:test > /dev/null
+        run: docker image inspect codecraft:test > /dev/null

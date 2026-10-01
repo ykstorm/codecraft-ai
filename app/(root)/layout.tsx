@@ -3,7 +3,7 @@ import { Metadata } from "next";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const metadata: Metadata = {
-  title: "Codecraft — Backend Engineer · AI Infrastructure · DevOps",
+  title: "Codecraft, in-browser IDE",
 };
 
 export default function HomeLayout({

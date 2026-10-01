@@ -50,13 +50,6 @@ const PHASE_LABEL: Record<BootPhase, string> = {
   unavailable: "unavailable",
 };
 
-/**
- * <WebPlayground> — boots a real WebContainer, mounts the Vite + React template
- * (or a cached snapshot), runs `npm install && npm run dev`, and presents a real
- * IDE: an editable Monaco editor whose debounced writes hot-reload the preview,
- * an interactive xterm terminal wired to a `jsh` shell, and a live preview
- * iframe — all in resizable panes. Mobile viewports get a desktop-only hint.
- */
 export function WebPlayground({ name }: { name: string }) {
   const isMobile = useIsMobile();
   const {

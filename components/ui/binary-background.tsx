@@ -2,10 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
-/**
- * <BinaryBackground> — hero canvas of falling binary, ~30 columns, ~8% opacity,
- * cyan glyphs. Pure decoration; pointer-events disabled. Respects reduced motion.
- */
+// Decorative hero canvas of falling binary. Pointer-events off; respects
+// prefers-reduced-motion (renders a single static frame).
 export function BinaryBackground() {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -55,7 +53,7 @@ export function BinaryBackground() {
           const row = head - r;
           if (row < 0) continue;
           const y = (row % rows()) * fontSize;
-          // deterministic glyph — no Math.random (forbidden in this env anyway)
+          // deterministic glyph so the animation is stable frame to frame
           const bit = (i + row + frame) % 3 === 0 ? "1" : "0";
           ctx.fillText(bit, x, y);
         }

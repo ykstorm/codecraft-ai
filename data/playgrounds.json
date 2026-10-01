@@ -5,7 +5,6 @@
     "tagline": "Fast HMR React playground",
     "description": "A minimal Vite + React project that boots a real dev server inside your browser tab via WebContainers. Edit src/App.jsx and watch it hot-reload in the live preview.",
     "tags": ["Vite", "React", "WebContainer"],
-    "demo": "https://vitejs.dev",
-    "featured": true
+    "demo": "https://vitejs.dev"
   }
 ]
