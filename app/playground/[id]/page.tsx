@@ -2,20 +2,15 @@ import { redirect } from "next/navigation";
 
 import playgroundsData from "@/data/playgrounds.json";
 import { WebPlayground } from "@/components/playground/web-playground";
-import { ComingSoon } from "@/components/playground/coming-soon";
 import { TemplateNotFound } from "@/components/playground/template-not-found";
 
 type Template = {
   slug: string;
   name: string;
   tagline: string;
-  featured?: boolean;
 };
 
 const templates = playgroundsData as Template[];
-
-// Only vite-react-starter is wired end-to-end to a live WebContainer for now.
-const LIVE_SLUGS = new Set(["vite-react-starter"]);
 
 export default async function PlaygroundPage({
   params,
@@ -36,9 +31,5 @@ export default async function PlaygroundPage({
     return <TemplateNotFound />;
   }
 
-  if (LIVE_SLUGS.has(template.slug)) {
-    return <WebPlayground name={template.name} />;
-  }
-
-  return <ComingSoon name={template.name} tagline={template.tagline} />;
+  return <WebPlayground name={template.name} />;
 }

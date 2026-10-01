@@ -162,7 +162,7 @@ export function useViteWebContainer(): UseViteWebContainer {
       if (typeof window === "undefined" || !window.crossOriginIsolated) {
         setPhase("unavailable");
         setError(
-          "Cross-origin isolation is off, so WebContainer can't boot. It needs COOP/COEP headers and a Chromium-based browser (Chrome / Edge / Brave / Firefox)."
+          "Cross-origin isolation is off, so WebContainer can't boot. It needs the COOP/COEP headers and a current Chrome, Edge, or Firefox with cross-origin isolation."
         );
         return;
       }
