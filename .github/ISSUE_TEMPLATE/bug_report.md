@@ -21,9 +21,9 @@ What actually happened.
 ## Environment
 
 - OS:
+- Browser + version:
 - Node.js version:
 - npm version:
-- Ollama version (if applicable):
 
 ## Screenshots / Logs
 

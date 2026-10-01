@@ -13,6 +13,8 @@ export const publicRoutes: string[] = [
   "/",
   "/playgrounds",
   "/playground/*",
+  "/api/health",
+  "/api/now",
 ];
 
 /**

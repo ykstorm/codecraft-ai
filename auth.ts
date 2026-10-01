@@ -3,7 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 
 import authConfig from "./auth.config"
 import { db } from "./lib/db";
-import { getAccountByUserId, getUserById } from "./lib/auth-helpers";
+import { getUserById } from "./lib/auth-helpers";
 
 
  
@@ -14,8 +14,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     /**
      * Handle user creation and account linking after a successful sign-in
      */
-    async signIn({ user, account, profile }) {
-      if (!user || !account) return false;
+    async signIn({ user, account }) {
+      // A provider that returns no email (e.g. a private GitHub email) would
+      // otherwise hit `user.email!` and throw a 500. Refuse the sign-in instead.
+      if (!user?.email || !account) return false;
 
       // Check if the user already exists
       const existingUser = await db.user.findUnique({
@@ -84,13 +86,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       return true;
     },
 
-    async jwt({ token, user, account }) {
+    async jwt({ token }) {
       if(!token.sub) return token;
       const existingUser = await getUserById(token.sub)
 
       if(!existingUser) return token;
-
-      const exisitingAccount = await getAccountByUserId(existingUser.id);
 
       token.name = existingUser.name;
       token.email = existingUser.email;

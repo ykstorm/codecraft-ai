@@ -1,23 +1,8 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  {
-    rules: {
-      // Relax no-explicit-any to warning (not error) for rapid development
-      // Real issues tracked via @typescript-eslint/no-unused-vars and strict tsconfig
-      "@typescript-eslint/no-explicit-any": "warn",
-    },
-  },
-];
+// eslint-config-next ships a flat config array (next + next/typescript +
+// core-web-vitals). `@typescript-eslint/no-explicit-any` is already off in that
+// preset, so no local override is needed.
+const eslintConfig = [...nextCoreWebVitals];
 
 export default eslintConfig;

@@ -6,6 +6,14 @@ import type { WebContainer, WebContainerProcess } from "@webcontainer/api";
 import { getWebContainer } from "@/lib/webcontainer";
 import { loadSnapshot, saveSnapshot, clearSnapshot } from "@/lib/snapshot-cache";
 import { viteReactTree } from "@/data/templates/vite-react";
+import { withTimeout, TimeoutError } from "@/lib/timeout";
+
+/** npm install is killed if it hasn't exited within this wall-clock budget. */
+const INSTALL_TIMEOUT_MS = 180_000;
+/** Don't persist snapshots larger than this — they blow the IndexedDB budget. */
+const MAX_SNAPSHOT_BYTES = 200 * 1024 * 1024;
+/** Don't persist a snapshot if it would push storage past this share of quota. */
+const MAX_QUOTA_SHARE = 0.5;
 
 export type BootPhase =
   | "idle"
@@ -50,6 +58,41 @@ type UseViteWebContainer = {
 const SLUG = "vite-react-starter";
 
 /**
+ * Decide whether a snapshot of `bytes` should be persisted. Rejects anything
+ * over the hard cap, or anything that would push estimated storage past half the
+ * origin quota. Emits a one-line reason when it declines.
+ */
+async function snapshotFitsBudget(
+  bytes: number,
+  emit: (s: string) => void
+): Promise<boolean> {
+  if (bytes > MAX_SNAPSHOT_BYTES) {
+    emit(
+      `\r\n[info] snapshot ${(bytes / 1024 / 1024).toFixed(
+        0
+      )}MB exceeds ${MAX_SNAPSHOT_BYTES / 1024 / 1024}MB cap — not cached\r\n`
+    );
+    return false;
+  }
+  try {
+    const est = await navigator.storage?.estimate?.();
+    const quota = est?.quota ?? 0;
+    const usage = est?.usage ?? 0;
+    if (quota > 0 && (usage + bytes) / quota > MAX_QUOTA_SHARE) {
+      emit(
+        `\r\n[info] caching snapshot would exceed ${
+          MAX_QUOTA_SHARE * 100
+        }% of storage quota — not cached\r\n`
+      );
+      return false;
+    }
+  } catch {
+    // estimate() unavailable — fall through and let the size cap be the guard.
+  }
+  return true;
+}
+
+/**
  * Boots a WebContainer, mounts the Vite + React template, and either restores a
  * cached node_modules snapshot (fast path) or runs `npm install` (cold path),
  * then starts the Vite dev server and spawns an interactive `jsh` shell.
@@ -74,6 +117,12 @@ export function useViteWebContainer(): UseViteWebContainer {
 
   const outputSinkRef = useRef<((chunk: string) => void) | null>(null);
   const emit = useCallback((s: string) => outputSinkRef.current?.(s), []);
+
+  // Long-lived child processes. The WebContainer singleton is kept for the
+  // session, but the dev server and interactive shell it spawns must be killed
+  // on unmount (and on reset) so they don't leak across navigations.
+  const devProcRef = useRef<WebContainerProcess | null>(null);
+  const shellProcRef = useRef<WebContainerProcess | null>(null);
 
   const onOutput = useCallback((sink: (chunk: string) => void) => {
     outputSinkRef.current = sink;
@@ -162,7 +211,30 @@ export function useViteWebContainer(): UseViteWebContainer {
           install.output.pipeTo(
             new WritableStream({ write: (d) => emit(d) })
           );
-          const code = await install.exit;
+          let code: number;
+          try {
+            // Bound the install: a wedged npm (unreachable CDN mid-stream) must
+            // not hang the boot forever. On timeout, kill the process and fail.
+            code = await withTimeout(
+              install.exit,
+              INSTALL_TIMEOUT_MS,
+              "npm install",
+              () => install.kill()
+            );
+          } catch (err) {
+            if (disposed) return;
+            if (err instanceof TimeoutError) {
+              setPhase("error");
+              setError(
+                `npm install did not finish within ${
+                  INSTALL_TIMEOUT_MS / 1000
+                }s and was stopped. This usually means the *.staticblitz.com CDN stalled mid-install (content blocker / VPN / unstable network). Retry on a stable connection.`
+              );
+              emit(`\r\nerror: npm install timed out — stopped\r\n`);
+              return;
+            }
+            throw err;
+          }
           if (disposed) return;
           if (code !== 0) {
             setPhase("error");
@@ -176,13 +248,22 @@ export function useViteWebContainer(): UseViteWebContainer {
             installMs: Math.round(performance.now() - installStart),
           }));
 
-          // Cache node_modules for sub-20s return-visit boots.
+          // Cache node_modules for sub-20s return-visit boots — but only when it
+          // comfortably fits the storage budget. A snapshot that overflows quota
+          // just wastes an export and a failed write.
           try {
-            const exported = await wc.export("/", { format: "binary" });
-            await saveSnapshot(SLUG, exported as Uint8Array);
-            emit("$ snapshot cached for fast reboot\r\n");
-          } catch {
-            /* snapshot is an optimization; ignore failures */
+            const exported = (await wc.export("/", {
+              format: "binary",
+            })) as Uint8Array;
+            const fits = await snapshotFitsBudget(exported.byteLength, emit);
+            if (fits) {
+              await saveSnapshot(SLUG, exported);
+              emit("$ snapshot cached for fast reboot\r\n");
+            }
+          } catch (err) {
+            // Surface, don't swallow: a quota/export failure is useful signal.
+            const msg = err instanceof Error ? err.message : String(err);
+            emit(`\r\n[warn] snapshot not cached: ${msg}\r\n`);
           }
         }
 
@@ -190,6 +271,7 @@ export function useViteWebContainer(): UseViteWebContainer {
         setPhase("starting-dev");
         emit("$ npm run dev\r\n");
         const dev = await wc.spawn("npm", ["run", "dev"]);
+        devProcRef.current = dev;
         dev.output.pipeTo(new WritableStream({ write: (d) => emit(d) }));
 
         // Spawn an interactive shell so the user can type real commands.
@@ -200,6 +282,7 @@ export function useViteWebContainer(): UseViteWebContainer {
           sh.kill();
           return;
         }
+        shellProcRef.current = sh;
         setShell(sh);
       } catch (e) {
         if (disposed) return;
@@ -222,6 +305,16 @@ export function useViteWebContainer(): UseViteWebContainer {
 
     return () => {
       disposed = true;
+      // Kill the dev server and interactive shell. The WebContainer singleton
+      // itself is kept (see lib/webcontainer.ts) so navigations can reuse it.
+      for (const ref of [devProcRef, shellProcRef]) {
+        try {
+          ref.current?.kill();
+        } catch {
+          /* already exited */
+        }
+        ref.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);

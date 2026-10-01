@@ -39,6 +39,7 @@ export function InteractiveTerminal({
         fontSize: 12,
         fontFamily: "ui-monospace, monospace",
         cursorBlink: true,
+        scrollback: 2000,
         theme: {
           background: "#050505",
           foreground: "#e5e7eb",

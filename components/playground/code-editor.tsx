@@ -1,9 +1,66 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 
 import { viteReactEditableFiles, viteReactTree } from "@/data/templates/vite-react";
+
+// Self-host Monaco. Without this, @monaco-editor/react loads the editor from a
+// jsDelivr CDN at runtime; pointing its loader at the bundled `monaco-editor`
+// package keeps everything same-origin (no third-party CDN, CSP-clean) and the
+// language workers ship in .next/static. `new Worker(new URL(...))` is the
+// bundler-native worker form (webpack 5 / Turbopack both resolve it).
+if (typeof window !== "undefined") {
+  (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment =
+    {
+      getWorker(_workerId: string, label: string) {
+        switch (label) {
+          case "json":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/json/json.worker.js",
+                import.meta.url
+              )
+            );
+          case "css":
+          case "scss":
+          case "less":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/css/css.worker.js",
+                import.meta.url
+              )
+            );
+          case "html":
+          case "handlebars":
+          case "razor":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/html/html.worker.js",
+                import.meta.url
+              )
+            );
+          case "typescript":
+          case "javascript":
+            return new Worker(
+              new URL(
+                "monaco-editor/language/typescript/ts.worker.js",
+                import.meta.url
+              )
+            );
+          default:
+            return new Worker(
+              new URL(
+                "monaco-editor/editor/editor.worker.js",
+                import.meta.url
+              )
+            );
+        }
+      },
+    };
+  loader.config({ monaco });
+}
 
 /** Pull an initial file's contents out of the static template tree by path. */
 function templateFileContents(path: string): string {
