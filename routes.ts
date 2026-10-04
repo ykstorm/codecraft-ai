@@ -10,12 +10,6 @@ export const publicRoutes: string[] = [
   "/api/now",
 ];
 
-// Routes that require authentication.
-export const protectedRoutes: string[] = [
-  "/dashboard",
-  "/settings",
-];
-
 // Auth routes. A signed-in user hitting one of these is redirected home.
 export const authRoutes: string[] = [
   "/auth/sign-in",

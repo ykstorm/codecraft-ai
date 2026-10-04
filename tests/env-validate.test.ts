@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { resetCache } from '../lib/env-validate'
 import { validateEnv, assertEnv } from '../lib/env-validate'
 
 describe('validateEnv', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
-    resetCache()
   })
 
   it('returns valid when all required vars are present', () => {
@@ -61,7 +59,6 @@ describe('validateEnv', () => {
     delete process.env.AUTH_GITHUB_ID
     delete process.env.AUTH_GOOGLE_ID
     delete process.env.DATABASE_URL
-    resetCache()
 
     const result = validateEnv()
     expect(result.valid).toBe(false)
@@ -75,7 +72,6 @@ describe('validateEnv', () => {
 describe('assertEnv', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
-    resetCache()
   })
 
   it('does not throw when all vars present', () => {

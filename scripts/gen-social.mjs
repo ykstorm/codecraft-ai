@@ -1,4 +1,4 @@
-// Generates .github/social-preview.png (1280x640) — Teerth-styled card.
+// Generates .github/social-preview.png (1280x640), the card GitHub shows when the repo is linked.
 // Run: node scripts/gen-social.mjs
 import sharp from "sharp";
 import { mkdir, writeFile } from "node:fs/promises";
