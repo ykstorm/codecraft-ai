@@ -17,26 +17,6 @@ export interface EnvValidationResult {
   missing: string[];
 }
 
-let _cached: Record<string, string> | null = null;
-
-export function resetCache(): void {
-  _cached = null;
-}
-
-export function getEnv(): Record<string, string> {
-  if (_cached !== null) return _cached;
-  const result = validateEnv();
-  if (!result.valid) {
-    const missingList = result.missing.join(", ");
-    throw new Error(
-      `Missing required environment variables: ${missingList}. ` +
-        `Please set these variables in your .env file or environment.`
-    );
-  }
-  _cached = Object.fromEntries(REQUIRED_ENV_VARS.map(k => [k, process.env[k]!]));
-  return _cached;
-}
-
 export function validateEnv(): EnvValidationResult {
   const missing: string[] = [];
 
@@ -53,5 +33,11 @@ export function validateEnv(): EnvValidationResult {
 }
 
 export function assertEnv(): void {
-  getEnv(); // throws if invalid
+  const result = validateEnv();
+  if (!result.valid) {
+    throw new Error(
+      `Missing required environment variables: ${result.missing.join(", ")}. ` +
+        `Please set these variables in your .env file or environment.`
+    );
+  }
 }
