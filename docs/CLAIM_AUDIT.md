@@ -1,10 +1,10 @@
-# Claim audit — codecraft-ai
+# Claim audit, codecraft-ai
 
 Every public claim (README, landing page, resume/portfolio copy) mapped to the
 file:line that implements it, plus how it's verified. If a row can't be filled,
 the claim doesn't ship.
 
-_Last verified: 2026-06-19 — branch `fix/real-e2e`._
+_Last verified: 2026-06-19, branch `fix/real-e2e`._
 
 ## Verification baseline (CI-runnable, exit 0)
 
@@ -47,6 +47,6 @@ browser and is verified on the Vercel preview (see "User actions" in the PR).
 
 - The host app is **Next.js 16**; the template booted **inside** the WebContainer
   is **Vite + React 18**. Next.js is not run inside the WebContainer (its dev
-  server is slow/unstable there — see `data/templates/vite-react.ts` header).
+  server is slow/unstable there, see `data/templates/vite-react.ts` header).
 - No boot-time number is hardcoded anywhere. The only displayed timings come from
   `performance.now()` deltas measured live in the visitor's browser.
