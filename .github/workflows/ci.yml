@@ -42,8 +42,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Generate Prisma client
-        env:
-          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: npx prisma generate
       - name: Typecheck
         run: npx tsc --noEmit
@@ -62,8 +60,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Generate Prisma client
-        env:
-          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: npx prisma generate
       - name: Run tests
         run: npm test
@@ -100,8 +96,6 @@ jobs:
       - name: Install Playwright (chromium)
         run: npx playwright install --with-deps chromium
       - name: Build
-        env:
-          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: |
           cat > .env <<'EOF'
           AUTH_SECRET=ci-dummy-secret-for-smoke-only
@@ -135,12 +129,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Generate Prisma client
-        env:
-          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: npx prisma generate
       - name: Build app
-        env:
-          PRISMA_SKIP_POSTGRESQL_CHECK: "true"
         run: |
           cat > .env <<'EOF'
           AUTH_SECRET=ci-dummy-secret-for-build-only
