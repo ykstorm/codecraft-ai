@@ -46,7 +46,10 @@ Deploy, wait a couple of minutes, open the URL.
 
 ## 2. Self-hosted Docker
 
-`docker-compose.yml` covers the app plus MongoDB.
+`docker-compose.yml` covers the app plus MongoDB. The bundled `mongodb` service
+has no authentication and publishes port 27017 on the host, so it is for local
+use. On a VPS, set `DATABASE_URL` to a MongoDB that requires auth (Atlas works)
+and remove the `mongodb` service and the app's `depends_on` entry for it.
 
 ```bash
 # On a fresh Ubuntu VPS

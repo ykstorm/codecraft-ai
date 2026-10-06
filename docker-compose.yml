@@ -28,6 +28,8 @@ services:
     networks:
       - codecraft-network
 
+  # Local use only: a standalone MongoDB with no authentication, and its port
+  # is published on the host. Do not run it like this on a reachable machine.
   mongodb:
     image: mongo:7.0.14
     container_name: codecraft-mongodb
