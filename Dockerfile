@@ -24,6 +24,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+# Used by the compose healthcheck.
+COPY --from=builder --chmod=755 /app/scripts/docker-healthcheck.sh ./scripts/docker-healthcheck.sh
 
 USER nextjs
 

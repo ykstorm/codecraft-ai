@@ -2,6 +2,7 @@
 .github
 docs
 scripts
+!scripts/docker-healthcheck.sh
 node_modules
 .env
 .env.local
