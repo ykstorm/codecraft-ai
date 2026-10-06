@@ -50,9 +50,10 @@ export default function Home() {
               No backend, no install.
             </p>
             <p className="mt-3 max-w-2xl font-mono text-xs text-muted-foreground">
-              Cold boot takes 30 to 90 seconds on the first visit (Node and npm
-              install run in your tab). Return visits restore a cached snapshot in
-              under 20 seconds.
+              The first visit is a cold boot: Node and npm install run in your
+              tab. Return visits restore a cached snapshot instead of
+              reinstalling, and the playground header shows the measured boot
+              time.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
