@@ -19,9 +19,10 @@ export default async function PlaygroundPage({
 }) {
   const { id } = await params;
 
-  // Empty / sentinel ids → bounce to dashboard (keeps /playground/undefined a 307).
+  // Empty / sentinel ids → bounce to the public gallery (keeps
+  // /playground/undefined a 307).
   if (!id || id === "undefined" || id === "null") {
-    redirect("/dashboard");
+    redirect("/playgrounds");
   }
 
   const template = templates.find((t) => t.slug === id);
