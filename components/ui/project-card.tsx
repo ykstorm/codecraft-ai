@@ -8,7 +8,6 @@ export type Playground = {
   tagline: string;
   description: string;
   tags: string[];
-  demo?: string;
 };
 
 export function ProjectCard({ project }: { project: Playground }) {

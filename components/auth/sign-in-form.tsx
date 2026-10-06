@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -46,20 +45,6 @@ const SignInForm = () => {
           </Button>
         </form>
       </CardContent>
-
-      <CardFooter>
-        <p className="text-sm text-center text-gray-500 dark:text-gray-400 w-full">
-          By signing in, you agree to our{" "}
-          <a href="#" className="underline hover:text-primary">
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a href="#" className="underline hover:text-primary">
-            Privacy Policy
-          </a>
-          .
-        </p>
-      </CardFooter>
     </Card>
   );
 };

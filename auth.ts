@@ -9,7 +9,7 @@ import { getUserById } from "./lib/auth-helpers";
  
 
  
-export const { auth, handlers, signIn, signOut } = NextAuth({
+export const { auth, handlers, signIn } = NextAuth({
   callbacks: {
     /**
      * Handle user creation and account linking after a successful sign-in

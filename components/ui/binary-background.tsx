@@ -36,13 +36,14 @@ export function BinaryBackground() {
       }
     };
     resize();
-    window.addEventListener("resize", resize);
 
     let raf = 0;
     let frame = 0;
     const rows = () => Math.ceil(height / fontSize) + 1;
 
-    const draw = () => {
+    // Paints the current state without advancing it, so the static
+    // reduced-motion frame can be repainted unchanged.
+    const paint = () => {
       ctx.clearRect(0, 0, width, height);
       ctx.globalAlpha = 0.08;
       ctx.fillStyle = "#22d3ee";
@@ -57,13 +58,25 @@ export function BinaryBackground() {
           const bit = (i + row + frame) % 3 === 0 ? "1" : "0";
           ctx.fillText(bit, x, y);
         }
-        drops[i] = head + 1;
       }
+    };
+
+    const draw = () => {
+      paint();
+      for (let i = 0; i < COLS; i++) drops[i] += 1;
       frame++;
     };
 
+    // Setting canvas.width in resize() clears the canvas. The animation loop
+    // repaints on its next tick; the static frame has to be repainted here.
+    const onResize = () => {
+      resize();
+      if (reduce) paint();
+    };
+    window.addEventListener("resize", onResize);
+
     if (reduce) {
-      draw();
+      paint();
     } else {
       let last = 0;
       const loop = (t: number) => {
@@ -77,7 +90,7 @@ export function BinaryBackground() {
     }
 
     return () => {
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", onResize);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);

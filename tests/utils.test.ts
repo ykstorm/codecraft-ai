@@ -3,24 +3,15 @@ import { cn } from '../lib/utils'
 
 describe('cn (clsx + tailwind-merge utility)', () => {
   it('merges tailwind classes', () => {
+    // tailwind-merge drops the conflicting text-sm and keeps the later
+    // text-lg; clsx on its own would return 'text-sm text-lg'
     expect(cn('text-sm', 'text-lg')).toBe('text-lg')
-  })
-
-  it('handles conditional classes (true)', () => {
-    // conditional && 'text-lg' → 'text-lg' when true
-    // cn('text-sm', 'text-lg') → 'text-lg' (last wins in clsx)
-    expect(cn('text-sm', true && 'text-lg')).toBe('text-lg')
   })
 
   it('handles conditional classes (false)', () => {
     // conditional && 'text-lg' → false when false
     // cn('text-sm', false) → 'text-sm' (false is filtered out)
     expect(cn('text-sm', false && 'text-lg')).toBe('text-sm')
-  })
-
-  it('handles false conditional', () => {
-    const conditional = false
-    expect(cn('text-sm', conditional && 'text-lg')).toBe('text-sm')
   })
 
   it('handles undefined', () => {

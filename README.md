@@ -89,14 +89,14 @@ so WebContainers work locally too.
 ### Environment
 
 The landing page and the playground need no secrets. `/dashboard`, `/settings` and
-the NextAuth callbacks need these (checked in [`lib/env-validate.ts`](lib/env-validate.ts)):
+the NextAuth callbacks need these:
 
 | Variable | Required for | Notes |
 |---|---|---|
 | `AUTH_SECRET` | NextAuth sessions | `openssl rand -base64 32` |
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub sign-in | GitHub OAuth app |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google sign-in | Google OAuth client |
-| `DATABASE_URL` | Prisma (users and accounts) | any Prisma-supported database |
+| `DATABASE_URL` | Prisma (users and accounts) | a MongoDB connection string |
 
 ## Limitations
 
