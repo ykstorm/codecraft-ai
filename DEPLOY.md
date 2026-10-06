@@ -35,7 +35,7 @@ error.
    - `AUTH_SECRET` — `openssl rand -base64 32`
    - `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` — Google Cloud Console OAuth
    - `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` — GitHub OAuth app
-   - `DATABASE_URL` — MongoDB Atlas (free tier) or any Prisma-supported DB
+   - `DATABASE_URL` — a MongoDB connection string, e.g. MongoDB Atlas (free tier)
 3. OAuth redirect URIs:
    - Google: `https://<your-domain>/api/auth/callback/google`
    - GitHub: `https://<your-domain>/api/auth/callback/github`
