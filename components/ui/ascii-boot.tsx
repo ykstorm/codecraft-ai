@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import playgroundsData from "@/data/playgrounds.json";
 
@@ -24,12 +24,12 @@ const SESSION_KEY = "cc_boot_played";
 export function AsciiBoot() {
   const [shown, setShown] = useState(0);
   const [done, setDone] = useState(false);
-  const startedRef = useRef(false);
 
+  // StrictMode (dev) runs effect → cleanup → effect. The cleanup clears the
+  // first run's interval, so no "already started" guard is needed, and one
+  // would stop the second run from playing.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (startedRef.current) return;
-    startedRef.current = true;
     if (sessionStorage.getItem(SESSION_KEY)) return; // already played this session
 
     let line = 0;
