@@ -136,8 +136,9 @@ async function cacheSnapshot(
 /**
  * Mount the stored snapshot, if there is a usable one. Returns true when the
  * project folder is in place and install can be skipped. A stored value of
- * the wrong shape, or a mount that leaves no package.json and node_modules,
- * is cleared so the next visit does not try it again.
+ * the wrong shape, or a mount that leaves no package.json and node_modules or
+ * bin scripts that stay read-only, is cleared so the next visit does not try
+ * it again.
  */
 async function tryRestore(
   wc: WebContainer,
@@ -156,7 +157,7 @@ async function tryRestore(
 
   await clearSnapshot(SNAPSHOT_KEY);
   emit(
-    "[warn] the restored snapshot has no package.json or node_modules; cleared it, installing from the template\r\n"
+    "[warn] the restored snapshot was not usable (no package.json or node_modules, or its bin scripts stayed read-only); cleared it, installing from the template\r\n"
   );
   return false;
 }

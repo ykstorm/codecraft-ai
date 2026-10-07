@@ -11,6 +11,9 @@
  * is the folder the export was taken from, so the tree lands back in the same
  * place. An earlier build exported "/" (bin, etc, home, tmp, usr) and mounted
  * that into the working directory, which buried package.json two levels down.
+ *
+ * The binary format keeps files, folders and symlinks but not file modes, so
+ * a restore also makes the node_modules/.bin scripts executable again.
  */
 
 /** Largest snapshot worth keeping in IndexedDB. */
@@ -33,6 +36,7 @@ export type SnapshotContainer = {
     options: { format: "binary"; excludes: string[] }
   ): Promise<Uint8Array>;
   mount(snapshot: Uint8Array): Promise<void>;
+  spawn(command: string, args: string[]): Promise<{ exit: Promise<number> }>;
   fs: { readdir(path: string): Promise<string[]> };
 };
 
@@ -44,8 +48,9 @@ export function exportProjectSnapshot(wc: SnapshotContainer): Promise<Uint8Array
 /**
  * Mount a stored export back into the working directory and check that the
  * result is a project: package.json and node_modules at the top. Returns
- * false when the mount fails or the shape is wrong, so the caller can drop the
- * snapshot and install from the template instead.
+ * false when the mount fails, the shape is wrong or the bin scripts can't be
+ * made executable, so the caller can drop the snapshot and install from the
+ * template instead.
  */
 export async function restoreProjectSnapshot(
   wc: SnapshotContainer,
@@ -54,10 +59,28 @@ export async function restoreProjectSnapshot(
   try {
     await wc.mount(bytes);
     const names = await wc.fs.readdir(".");
-    return names.includes("package.json") && names.includes("node_modules");
+    if (!names.includes("package.json") || !names.includes("node_modules")) return false;
+    return await restoreBinModes(wc);
   } catch {
     return false;
   }
+}
+
+/**
+ * The binary export keeps symlinks but not file modes, so after a mount the
+ * scripts behind node_modules/.bin are no longer executable and `npm run dev`
+ * fails with "spawn vite EACCES". chmod follows each .bin link to its script.
+ */
+async function restoreBinModes(wc: SnapshotContainer): Promise<boolean> {
+  let bins: string[];
+  try {
+    bins = await wc.fs.readdir("node_modules/.bin");
+  } catch {
+    return true; // no bin scripts to fix
+  }
+  if (bins.length === 0) return true;
+  const chmod = await wc.spawn("chmod", ["+x", ...bins.map((b) => `node_modules/.bin/${b}`)]);
+  return (await chmod.exit) === 0;
 }
 
 type BudgetVerdict = { fits: true } | { fits: false; reason: string };

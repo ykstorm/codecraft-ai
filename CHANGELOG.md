@@ -8,7 +8,8 @@ All notable changes to this project will be documented in this file.
 - The snapshot restore: the hook exported the whole container filesystem and
   mounted it into the project folder, so return visits failed. It now exports
   the project folder without `node_modules/.vite`, mounts it back in place, and
-  drops stored snapshots of the old layout.
+  drops stored snapshots of the old layout. The export drops file modes, so a
+  restore makes the `node_modules/.bin` scripts executable again.
 - A dev server that exits now shows an error with its last lines, and a boot
   that has not started after 60 s fails with a message instead of waiting.
 
@@ -38,10 +39,10 @@ All notable changes to this project will be documented in this file.
 - Two duplicate `cn()` tests in `tests/utils.test.ts`, which left 14 unit tests.
 
 ### Tests
-- 76 unit tests in 8 files: the snapshot paths and budget, the dev server exit
-  report, the boot timeout, the security headers, the CSP report route, the auth
-  env check and the proxy's 503 answers, alongside the existing env and `cn()`
-  tests.
+- 79 unit tests in 8 files: the snapshot paths, bin modes and budget, the dev
+  server exit report, the boot timeout, the security headers, the CSP report
+  route, the auth env check and the proxy's 503 answers, alongside the existing
+  env and `cn()` tests.
 
 ## [1.0.1] - 2026-05-11
 

@@ -36,8 +36,9 @@ function globToRegExp(glob: string): RegExp {
  * mount(bytes) writes those entries into the working directory, which is how
  * the real mount() behaves without a mountPoint.
  */
-function fakeContainer(files: Record<string, string> = {}) {
+function fakeContainer(files: Record<string, string> = {}, chmodExit = 0) {
   const fs = new Map(Object.entries(files))
+  const spawned: [string, string[]][] = []
   const container: SnapshotContainer = {
     workdir: WORKDIR,
     async export(path, options) {
@@ -53,6 +54,10 @@ function fakeContainer(files: Record<string, string> = {}) {
       const entries = JSON.parse(new TextDecoder().decode(bytes)) as [string, string][]
       for (const [rel, c] of entries) fs.set(`${WORKDIR}/${rel}`, c)
     },
+    async spawn(command, args) {
+      spawned.push([command, args])
+      return { exit: Promise.resolve(chmodExit) }
+    },
     fs: {
       async readdir(path) {
         const base = path === '.' ? `${WORKDIR}/` : `${WORKDIR}/${path}/`
@@ -64,7 +69,7 @@ function fakeContainer(files: Record<string, string> = {}) {
       },
     },
   }
-  return { container, fs }
+  return { container, fs, spawned }
 }
 
 // What the container held after a cold install: system folders at the root,
@@ -76,6 +81,9 @@ const AFTER_INSTALL = {
   [`${WORKDIR}/index.html`]: '<div id="root"></div>',
   [`${WORKDIR}/src/App.jsx`]: 'export default function App() {}',
   [`${WORKDIR}/node_modules/vite/package.json`]: '{"name":"vite"}',
+  [`${WORKDIR}/node_modules/vite/bin/vite.js`]: '#!/usr/bin/env node',
+  [`${WORKDIR}/node_modules/.bin/vite`]: '-> ../vite/bin/vite.js',
+  [`${WORKDIR}/node_modules/.bin/rollup`]: '-> ../rollup/dist/bin/rollup',
   [`${WORKDIR}/node_modules/.vite/deps/react.js`]: 'prebundled',
 }
 
@@ -99,7 +107,8 @@ describe('project snapshot paths', () => {
 
     const restored = [...second.fs.keys()]
     expect(restored.some((p) => p.includes('/node_modules/.vite/'))).toBe(false)
-    expect(restored.some((p) => p.includes('/bin/') || p.includes('/usr/'))).toBe(false)
+    // The system folders would land at the top of the project if they leaked in.
+    expect(restored.some((p) => p.startsWith(`${WORKDIR}/bin/`) || p.startsWith(`${WORKDIR}/usr/`))).toBe(false)
   })
 
   it('rejects the old layout: an export of / mounted into the project folder', async () => {
@@ -111,6 +120,32 @@ describe('project snapshot paths', () => {
     // This is the broken tree the earlier build booted: the project one level down.
     expect(second.fs.has(`${WORKDIR}/home/project/package.json`)).toBe(true)
     expect(second.fs.has(`${WORKDIR}/package.json`)).toBe(false)
+  })
+
+  it('makes the bin scripts executable again after the mount', async () => {
+    const bytes = await exportProjectSnapshot(fakeContainer(AFTER_INSTALL).container)
+    const second = fakeContainer()
+
+    expect(await restoreProjectSnapshot(second.container, bytes)).toBe(true)
+    expect(second.spawned).toEqual([
+      ['chmod', ['+x', 'node_modules/.bin/vite', 'node_modules/.bin/rollup']],
+    ])
+  })
+
+  it('treats a failed chmod as an unusable snapshot', async () => {
+    const bytes = await exportProjectSnapshot(fakeContainer(AFTER_INSTALL).container)
+    const second = fakeContainer({}, 1)
+    expect(await restoreProjectSnapshot(second.container, bytes)).toBe(false)
+  })
+
+  it('does not run chmod for a tree of the wrong shape', async () => {
+    const whole = await fakeContainer(AFTER_INSTALL).container.export('/', {
+      format: 'binary',
+      excludes: [],
+    })
+    const second = fakeContainer()
+    await restoreProjectSnapshot(second.container, whole)
+    expect(second.spawned).toEqual([])
   })
 
   it('reports a failed mount as an unusable snapshot', async () => {
