@@ -6,6 +6,7 @@ import {
   apiAuthPrefix,
   authRoutes,
   isPublicRoute,
+  needsSignIn,
 } from "@/routes";
 import { authUnavailableResponse } from "@/lib/auth-unavailable";
 import { isAuthConfigured } from "@/lib/env-validate";
@@ -40,14 +41,16 @@ const gate = auth((req) => {
 });
 
 export default function proxy(req: NextRequest, event: NextFetchEvent) {
-  // Without the auth variables there is nothing to sign in to. Public pages
-  // pass straight through, and every other path, /auth/sign-in and
-  // /api/auth/* included, gets a plain 503 instead of the 500 Auth.js would
-  // raise. The check runs per request, so it follows the runtime environment.
+  // Without the auth variables there is nothing to sign in to. The paths that
+  // need sign-in (the protected pages, /auth/sign-in and /api/auth/*) get a
+  // plain 503 instead of the 500 Auth.js would raise. Every other path passes
+  // through to Next, so public pages render and an unknown path reaches
+  // app/not-found.tsx. The check runs per request, so it follows the runtime
+  // environment.
   if (!isAuthConfigured()) {
-    return isPublicRoute(req.nextUrl.pathname)
-      ? NextResponse.next()
-      : authUnavailableResponse();
+    return needsSignIn(req.nextUrl.pathname)
+      ? authUnavailableResponse()
+      : NextResponse.next();
   }
   return gate(req, event);
 }
