@@ -1,9 +1,10 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { sep } from 'node:path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest, type NextFetchEvent } from 'next/server'
 
 import { AUTH_UNAVAILABLE_MESSAGE, authUnavailableResponse } from '../lib/auth-unavailable'
-import { isPublicRoute } from '../routes'
+import { isPublicRoute, needsSignIn } from '../routes'
 
 // The proxy wraps its gate in Auth.js. Stand in for it with a wrapper that
 // sees no session, so the test exercises only the proxy's own decisions.
@@ -86,6 +87,36 @@ describe('isPublicRoute', () => {
   })
 })
 
+describe('needsSignIn', () => {
+  it('covers the protected pages, the sign-in page and the auth API', () => {
+    for (const path of ['/dashboard', '/dashboard/anything', '/settings', '/auth/sign-in', '/api/auth/session', '/api/auth/signin/github']) {
+      expect(needsSignIn(path)).toBe(true)
+    }
+  })
+
+  it('leaves the public paths and unknown paths alone', () => {
+    for (const path of ['/', '/playgrounds', '/playground/vite-react-starter', '/api/now', '/foo', '/dashboardx', '/settingsx', '/api/authx']) {
+      expect(needsSignIn(path)).toBe(false)
+    }
+  })
+
+  it('leaves no page or route handler under app/ neither public nor behind sign-in', () => {
+    // app/(root)/page.tsx -> "/", app/playground/[id]/page.tsx -> "/playground/id".
+    const pages = readdirSync('app', { recursive: true })
+      .map((file) => String(file).split(sep).join('/'))
+      .filter((file) => /(^|\/)(page|route)\.tsx?$/.test(file))
+      .map((file) => {
+        const segments = file.split('/').slice(0, -1)
+        const visible = segments.filter((segment) => !/^\(.*\)$/.test(segment))
+        return '/' + visible.map((segment) => segment.replace(/^\[(?:\.{3})?(\w+)\]$/, '$1')).join('/')
+      })
+    expect(pages.length).toBeGreaterThan(5)
+    // The proxy only sends the sign-in paths to the 503 page when auth is
+    // missing, so a page missing from routes.ts would be served unguarded.
+    expect(pages.filter((path) => !isPublicRoute(path) && !needsSignIn(path))).toEqual([])
+  })
+})
+
 describe('proxy without the auth variables', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
@@ -108,6 +139,29 @@ describe('proxy without the auth variables', () => {
       expect(res?.headers.get('x-middleware-next')).toBe('1')
     }
   )
+})
+
+describe('proxy without the auth variables, unknown paths', () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs()
+    configureAuth(false)
+  })
+
+  it.each(['/foo', '/foo/bar', '/dashboardx', '/api/authx'])(
+    'passes %s through to Next, which answers 404 from app/not-found.tsx',
+    async (path) => {
+      const res = await runProxy(path)
+      expect(res?.status).not.toBe(503)
+      expect(res?.headers.get('x-middleware-next')).toBe('1')
+      expect(existsSync('app/not-found.tsx')).toBe(true)
+    }
+  )
+
+  it('keeps the 503 for everything under a protected page', async () => {
+    const res = await runProxy('/dashboard/anything')
+    expect(res?.status).toBe(503)
+    expect(await res?.text()).toContain(AUTH_UNAVAILABLE_MESSAGE)
+  })
 })
 
 describe('proxy with the auth variables', () => {

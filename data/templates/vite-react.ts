@@ -92,7 +92,7 @@ export default function App() {
       <p className="kicker">// live</p>
       <h1>Vite + React, running in your browser tab.</h1>
       <p className="sub">
-        This dev server booted inside a WebContainer — no backend, no install on
+        This dev server booted inside a WebContainer, no backend, no install on
         your machine. Edit <code>src/App.jsx</code> and watch it hot-reload.
       </p>
       <button onClick={() => setCount((c) => c + 1)}>count is {count}</button>
