@@ -105,7 +105,7 @@ export function WebPlayground({ name }: { name: string }) {
           <button
             onClick={reset}
             className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-muted-foreground transition-colors hover:border-cyan-400 hover:text-cyan-300"
-            title="wipe snapshot + reinstall from the pristine template"
+            title="delete the stored snapshot and reinstall from the template"
           >
             <RotateCcw className="h-3 w-3" /> reset
           </button>

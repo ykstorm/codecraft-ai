@@ -3,17 +3,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { WebContainer, WebContainerProcess } from "@webcontainer/api";
 
-import { getWebContainer } from "@/lib/webcontainer";
+import { BootTimeoutError, getWebContainer } from "@/lib/webcontainer";
+import {
+  createOutputTail,
+  devExitMessage,
+  watchDevExit,
+  type OutputTail,
+} from "@/lib/dev-process";
 import { loadSnapshot, saveSnapshot, clearSnapshot } from "@/lib/snapshot-cache";
+import {
+  checkSnapshotBudget,
+  exportProjectSnapshot,
+  formatMegabytes,
+  readStorageEstimate,
+  restoreProjectSnapshot,
+} from "@/lib/project-snapshot";
 import { viteReactTree } from "@/data/templates/vite-react";
 import { withTimeout, TimeoutError } from "@/lib/timeout";
 
 /** npm install is killed if it hasn't exited within this wall-clock budget. */
 const INSTALL_TIMEOUT_MS = 180_000;
-/** Don't persist snapshots larger than this — they blow the IndexedDB budget. */
-const MAX_SNAPSHOT_BYTES = 200 * 1024 * 1024;
-/** Don't persist a snapshot if it would push storage past this share of quota. */
-const MAX_QUOTA_SHARE = 0.5;
+/** Lines of dev server output repeated in the terminal when it exits. */
+const DEV_TAIL_LINES = 20;
 
 export type BootPhase =
   | "idle"
@@ -26,7 +37,7 @@ export type BootPhase =
   | "error"
   | "unavailable";
 
-export type BootTimings = {
+type BootTimings = {
   bootMs: number | null;
   installMs: number | null;
   devReadyMs: number | null;
@@ -49,7 +60,8 @@ type UseViteWebContainer = {
   writeFile: (path: string, contents: string) => Promise<void>;
   /** read a file from the WebContainer FS */
   readFile: (path: string) => Promise<string>;
-  /** wipe the cached snapshot + re-mount the pristine template, reinstall */
+  /** delete the stored snapshot, mount the template over the project folder and
+   *  reinstall; after a boot timeout, reload the page instead */
   reset: () => void;
   /** attach an output sink for terminal streaming (boot logs + shell) */
   onOutput: (sink: (chunk: string) => void) => void;
@@ -78,6 +90,9 @@ class BootError extends Error {}
 /** Turn an unexpected thrown error into a user-facing message. */
 function classifyBootError(err: unknown): string {
   if (err instanceof BootError) return err.message;
+  if (err instanceof BootTimeoutError) {
+    return `${err.message} Press retry to reload the page and boot again.`;
+  }
   const raw = err instanceof Error ? err.message : String(err);
   const networky =
     /fetch|network|disconnect|ERR_INTERNET|staticblitz|webcontainer-api/i.test(
@@ -88,51 +103,63 @@ function classifyBootError(err: unknown): string {
     : raw;
 }
 
-/** Export the FS and cache it, but only when it fits the storage budget. */
+/**
+ * Export the project folder and store it, but only when it fits the storage
+ * budget. The budget is checked on the exported bytes before anything is
+ * written.
+ */
 async function cacheSnapshot(
   wc: WebContainer,
   key: string,
   emit: Emit
 ): Promise<void> {
   try {
-    const exported = (await wc.export("/", { format: "binary" })) as Uint8Array;
-    if (await snapshotFitsBudget(exported.byteLength, emit)) {
-      await saveSnapshot(key, exported);
-      emit("$ snapshot cached for fast reboot\r\n");
+    const bytes = await exportProjectSnapshot(wc);
+    const verdict = checkSnapshotBudget(bytes.byteLength, await readStorageEstimate());
+    if (!verdict.fits) {
+      emit(`\r\n[info] ${verdict.reason}, not cached\r\n`);
+      return;
     }
+    const saved = await saveSnapshot(key, bytes);
+    emit(
+      saved
+        ? `$ snapshot cached (${formatMegabytes(bytes.byteLength)}) for the next visit\r\n`
+        : "\r\n[warn] snapshot not cached: the browser refused the write\r\n"
+    );
   } catch (err) {
-    // Surface, don't swallow: a quota/export failure is useful signal.
+    // Surface, don't swallow: an export failure is useful signal.
     const msg = err instanceof Error ? err.message : String(err);
     emit(`\r\n[warn] snapshot not cached: ${msg}\r\n`);
   }
 }
 
-/** Reject a snapshot that's over the hard cap or would overrun the quota. */
-async function snapshotFitsBudget(bytes: number, emit: Emit): Promise<boolean> {
-  if (bytes > MAX_SNAPSHOT_BYTES) {
-    emit(
-      `\r\n[info] snapshot ${(bytes / 1024 / 1024).toFixed(0)}MB exceeds ${
-        MAX_SNAPSHOT_BYTES / 1024 / 1024
-      }MB cap — not cached\r\n`
-    );
-    return false;
+/**
+ * Mount the stored snapshot, if there is a usable one. Returns true when the
+ * project folder is in place and install can be skipped. A stored value of
+ * the wrong shape, or a mount that leaves no package.json and node_modules or
+ * bin scripts that stay read-only, is cleared so the next visit does not try
+ * it again.
+ */
+async function tryRestore(
+  wc: WebContainer,
+  opts: { emit: Emit; setPhase: (p: BootPhase) => void }
+): Promise<boolean> {
+  const { emit, setPhase } = opts;
+  const stored = await loadSnapshot(SNAPSHOT_KEY);
+  if (stored.cleared) {
+    emit("[info] the stored snapshot has an older layout; cleared it\r\n");
   }
-  try {
-    const est = await navigator.storage?.estimate?.();
-    const quota = est?.quota ?? 0;
-    const usage = est?.usage ?? 0;
-    if (quota > 0 && (usage + bytes) / quota > MAX_QUOTA_SHARE) {
-      emit(
-        `\r\n[info] caching snapshot would exceed ${
-          MAX_QUOTA_SHARE * 100
-        }% of storage quota — not cached\r\n`
-      );
-      return false;
-    }
-  } catch {
-    // estimate() unavailable — fall through and let the size cap be the guard.
-  }
-  return true;
+  if (!stored.bytes) return false;
+
+  setPhase("restoring-snapshot");
+  emit("$ restore cached project snapshot\r\n");
+  if (await restoreProjectSnapshot(wc, stored.bytes)) return true;
+
+  await clearSnapshot(SNAPSHOT_KEY);
+  emit(
+    "[warn] the restored snapshot was not usable (no package.json or node_modules, or its bin scripts stayed read-only); cleared it, installing from the template\r\n"
+  );
+  return false;
 }
 
 /** Boot (or reuse) the shared WebContainer and return it plus the boot time. */
@@ -146,7 +173,7 @@ async function bootContainer(
 }
 
 /**
- * Either restore the cached node_modules snapshot (fast path) or mount the
+ * Either restore the cached project snapshot (fast path) or mount the
  * template and run `npm install` (cold path, then cache the result).
  */
 async function restoreOrInstall(
@@ -154,12 +181,7 @@ async function restoreOrInstall(
   opts: { forceCold: boolean; emit: Emit; setPhase: (p: BootPhase) => void }
 ): Promise<{ fromSnapshot: boolean; installMs: number | null }> {
   const { forceCold, emit, setPhase } = opts;
-  const snapshot = forceCold ? null : await loadSnapshot(SNAPSHOT_KEY);
-
-  if (snapshot) {
-    setPhase("restoring-snapshot");
-    emit("$ restore cached node_modules snapshot\r\n");
-    await wc.mount(snapshot);
+  if (!forceCold && (await tryRestore(wc, { emit, setPhase }))) {
     return { fromSnapshot: true, installMs: null };
   }
 
@@ -201,16 +223,28 @@ async function restoreOrInstall(
   return { fromSnapshot: false, installMs: Math.round(performance.now() - installStart) };
 }
 
-/** Start the Vite dev server and an interactive `jsh` shell. */
+/**
+ * Start the Vite dev server and an interactive `jsh` shell. The dev server's
+ * output goes to the terminal and into a short tail, so an exit can be shown
+ * with the lines that led up to it.
+ */
 async function startDevAndShell(
   wc: WebContainer,
   emit: Emit
-): Promise<{ dev: WebContainerProcess; shell: WebContainerProcess }> {
+): Promise<{ dev: WebContainerProcess; shell: WebContainerProcess; tail: OutputTail }> {
   emit("$ npm run dev\r\n");
   const dev = await wc.spawn("npm", ["run", "dev"]);
-  dev.output.pipeTo(new WritableStream({ write: (d) => emit(d) }));
+  const tail = createOutputTail(DEV_TAIL_LINES);
+  dev.output.pipeTo(
+    new WritableStream({
+      write: (d) => {
+        tail.push(d);
+        emit(d);
+      },
+    })
+  );
   const shell = await wc.spawn("jsh", [], { terminal: { cols: 80, rows: 24 } });
-  return { dev, shell };
+  return { dev, shell, tail };
 }
 
 export function useViteWebContainer(): UseViteWebContainer {
@@ -237,6 +271,8 @@ export function useViteWebContainer(): UseViteWebContainer {
   // on unmount (and on reset) so they don't leak across navigations.
   const devProcRef = useRef<WebContainerProcess | null>(null);
   const shellProcRef = useRef<WebContainerProcess | null>(null);
+  // Set when the boot timed out: this page can't boot again, so reset reloads.
+  const reloadOnResetRef = useRef(false);
 
   const onOutput = useCallback((sink: (chunk: string) => void) => {
     outputSinkRef.current = sink;
@@ -259,6 +295,10 @@ export function useViteWebContainer(): UseViteWebContainer {
   );
 
   const reset = useCallback(() => {
+    if (reloadOnResetRef.current) {
+      window.location.reload();
+      return;
+    }
     void clearSnapshot(SNAPSHOT_KEY);
     setServerUrl(null);
     setShell(null);
@@ -311,7 +351,7 @@ export function useViteWebContainer(): UseViteWebContainer {
         setTimings((t) => ({ ...t, fromSnapshot, installMs: installMs ?? t.installMs }));
 
         setPhase("starting-dev");
-        const { dev, shell: sh } = await startDevAndShell(wc, emit);
+        const { dev, shell: sh, tail } = await startDevAndShell(wc, emit);
         if (disposed) {
           dev.kill();
           sh.kill();
@@ -320,8 +360,20 @@ export function useViteWebContainer(): UseViteWebContainer {
         devProcRef.current = dev;
         shellProcRef.current = sh;
         setShell(sh);
+        // Vite does not exit on its own. If it does (a broken project, a bad
+        // config), show the error instead of waiting at "starting dev server".
+        void watchDevExit(dev, tail, {
+          isDisposed: () => disposed,
+          emit,
+          onExit: (code) => {
+            setServerUrl(null);
+            setPhase("error");
+            setError(devExitMessage(code));
+          },
+        });
       } catch (e) {
         if (disposed) return;
+        reloadOnResetRef.current = e instanceof BootTimeoutError;
         setPhase("error");
         setError(classifyBootError(e));
         const raw = e instanceof Error ? e.message : String(e);

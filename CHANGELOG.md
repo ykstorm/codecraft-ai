@@ -4,7 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- The snapshot restore: the hook exported the whole container filesystem and
+  mounted it into the project folder, so return visits failed. It now exports
+  the project folder without `node_modules/.vite`, mounts it back in place, and
+  drops stored snapshots of the old layout. The export drops file modes, so a
+  restore makes the `node_modules/.bin` scripts executable again.
+- A dev server that exits now shows an error with its last lines, and a boot
+  that has not started after 60 s fails with a message instead of waiting.
+
 ### Security
+- The report-only CSP allows the WebContainer boot frame
+  (`https://stackblitz.com`) and sends violation reports to `/api/csp-report`.
+- Without the auth variables, sign-in pages and `/api/auth/*` answer 503
+  instead of 500, and the landing header hides the dashboard link.
 - Sandboxed the preview iframe, moved all HTTP headers to a single source
   (`lib/security-headers.ts`) with a report-only CSP, self-hosted Monaco (no
   CDN), and closed the open `next/image` remote proxy.
@@ -23,6 +36,13 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 - `tests/ratelimit.test.ts` (the rate limiter it covered was deleted).
+- Two duplicate `cn()` tests in `tests/utils.test.ts`, which left 14 unit tests.
+
+### Tests
+- 81 unit tests in 8 files: the snapshot paths, bin modes and budget, the dev
+  server exit report and its plain-text tail, the boot timeout, the security headers, the CSP report
+  route, the auth env check and the proxy's 503 answers, alongside the existing
+  env and `cn()` tests.
 
 ## [1.0.1] - 2026-05-11
 

@@ -8,8 +8,9 @@ import type { FileSystemTree } from "@webcontainer/api";
  * Why Vite instead of Next.js: Next 15.x's dev server is slow and unstable
  * inside a WebContainer (cold boot can take minutes, and 15.5.x throws
  * "Expected workUnitAsyncStorage to have a store" on render). A Vite + React
- * project boots in ~30-40s cold and hot-reloads edits in <2s, so it is the
- * stable default for the live playground.
+ * project boots much faster (a cold boot, npm install included, took 73.0 s in
+ * one Chrome session on 2026-10-07; one machine's number) and hot-reloads edits
+ * in <2s, so it is the stable default for the live playground.
  *
  * JSX (not TSX) keeps the install light — no TypeScript toolchain needed.
  */
