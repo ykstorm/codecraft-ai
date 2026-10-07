@@ -15,9 +15,7 @@ const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
 ] as const;
 
-export type RequiredEnvVar = (typeof REQUIRED_ENV_VARS)[number];
-
-export interface EnvValidationResult {
+interface EnvValidationResult {
   valid: boolean;
   missing: string[];
 }

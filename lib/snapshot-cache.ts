@@ -26,7 +26,7 @@ const SNAPSHOT_ROOT = "workdir";
 
 type SnapshotRecord = { root: typeof SNAPSHOT_ROOT; bytes: Uint8Array };
 
-export type LoadedSnapshot = {
+type LoadedSnapshot = {
   /** the export to mount, or null for a cold boot */
   bytes: Uint8Array | null;
   /** true when a stored value had the wrong shape and was deleted */

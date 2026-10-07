@@ -16,14 +16,14 @@
 /** Largest snapshot worth keeping in IndexedDB. */
 export const MAX_SNAPSHOT_BYTES = 200 * 1024 * 1024;
 /** After the write, this origin should use at most this share of its quota. */
-export const MAX_QUOTA_SHARE = 0.5;
+const MAX_QUOTA_SHARE = 0.5;
 
 /**
  * Left out of the export. Vite writes its dependency cache to
  * node_modules/.vite once the dev server has run, rebuilds it on the next
  * start, and it would only make the snapshot bigger.
  */
-export const SNAPSHOT_EXCLUDES = ["**/node_modules/.vite/**"];
+const SNAPSHOT_EXCLUDES = ["**/node_modules/.vite/**"];
 
 /** The parts of a WebContainer the snapshot code touches. */
 export type SnapshotContainer = {
@@ -60,7 +60,7 @@ export async function restoreProjectSnapshot(
   }
 }
 
-export type BudgetVerdict = { fits: true } | { fits: false; reason: string };
+type BudgetVerdict = { fits: true } | { fits: false; reason: string };
 
 type StorageNumbers = { quota?: number; usage?: number } | null;
 

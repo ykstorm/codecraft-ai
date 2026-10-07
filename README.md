@@ -103,6 +103,10 @@ the playground are public, so no sign-in is needed to reach the editor.
 applied in development and production (`next.config.ts`, `lib/security-headers.ts`),
 so WebContainers work locally too.
 
+`node scripts/gen-social.mjs` regenerates the social preview image,
+`.github/social-preview.png`, by hand; it is the only user of the `sharp` dev
+dependency.
+
 ### Environment
 
 The landing page and the playground need no secrets. `/dashboard`, `/settings` and

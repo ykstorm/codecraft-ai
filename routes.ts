@@ -2,7 +2,7 @@
 // live playgrounds are deliberately open so the editor opens without signing in.
 // An entry ending in "/*" matches any path under that prefix (see
 // isPublicRoute below), which covers the dynamic /playground/[id] routes.
-export const publicRoutes: string[] = [
+const publicRoutes: string[] = [
   "/",
   "/playgrounds",
   "/playground/*",

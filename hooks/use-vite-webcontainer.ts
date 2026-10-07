@@ -37,7 +37,7 @@ export type BootPhase =
   | "error"
   | "unavailable";
 
-export type BootTimings = {
+type BootTimings = {
   bootMs: number | null;
   installMs: number | null;
   devReadyMs: number | null;

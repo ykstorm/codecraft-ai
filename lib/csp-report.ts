@@ -19,7 +19,7 @@ export const MAX_REPORT_BYTES = 8 * 1024;
 const MAX_REPORTS_PER_REQUEST = 10;
 const MAX_FIELD_LENGTH = 120;
 
-export type CspReportSummary = {
+type CspReportSummary = {
   directive: string;
   blocked: string;
   page: string;
