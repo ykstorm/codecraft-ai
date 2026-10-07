@@ -8,6 +8,8 @@ export const publicRoutes: string[] = [
   "/playground/*",
   "/api/health",
   "/api/now",
+  // Browsers post CSP violation reports here without any session.
+  "/api/csp-report",
 ];
 
 // Auth routes. A signed-in user hitting one of these is redirected home.

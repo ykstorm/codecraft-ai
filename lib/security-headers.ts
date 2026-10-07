@@ -2,17 +2,20 @@
  * Single source of truth for the HTTP security headers applied to every route.
  *
  * Imported by `next.config.ts`. There is intentionally no `vercel.json` headers
- * block any more — two sources drift, and the Next config applies in dev and
+ * block any more: two sources drift, and the Next config applies in dev and
  * prod alike, so WebContainers get the same cross-origin isolation locally.
  *
  * Cross-origin isolation (COOP: same-origin + COEP: require-corp) is required:
  * WebContainers need `SharedArrayBuffer`, which is only exposed to
  * cross-origin-isolated documents. Do not loosen it.
  *
- * The Content-Security-Policy is shipped in **Report-Only** mode first. It does
- * not block anything; it reports would-be violations so the host allow-list can
- * be confirmed against the real preview network traffic before a later change
- * promotes it to an enforcing `Content-Security-Policy`.
+ * The Content-Security-Policy is sent as Content-Security-Policy-Report-Only,
+ * so it blocks nothing. Browsers report what it would block to
+ * /api/csp-report (app/api/csp-report/route.ts): through `report-to` and the
+ * Reporting-Endpoints header where the Reporting API exists, and through
+ * `report-uri` elsewhere. The route logs one short line per report, so the
+ * allow-list can be checked against real traffic before a later change
+ * promotes the policy to an enforcing `Content-Security-Policy`.
  */
 
 // WebContainer runtime + preview hosts. The in-tab VM and its preview iframe are
@@ -22,9 +25,20 @@ const WEBCONTAINER_HOSTS = [
   "https://*.staticblitz.com",
 ];
 
+// The runtime boots inside a hidden iframe at https://stackblitz.com/headless
+// (@webcontainer/api dist/internal/constants.js and iframe-url.js). The host
+// page only frames that origin; it loads no script, worker or fetch from it,
+// so frame-src is the one directive that needs it. child-src is not set.
+const WEBCONTAINER_BOOT_FRAME = "https://stackblitz.com";
+
 // Vercel Web Analytics + Speed Insights (kept in the root layout).
 const VERCEL_SCRIPT_HOSTS = ["https://va.vercel-scripts.com"];
 const VERCEL_CONNECT_HOSTS = ["https://*.vercel-insights.com"];
+
+/** Where browsers send CSP violation reports. */
+export const CSP_REPORT_PATH = "/api/csp-report";
+/** The Reporting-Endpoints name that `report-to` points at. */
+const CSP_REPORT_GROUP = "csp-endpoint";
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -37,7 +51,7 @@ const contentSecurityPolicy = [
   )} wss://*.webcontainer-api.io wss://*.staticblitz.com ${VERCEL_CONNECT_HOSTS.join(
     " "
   )}`,
-  "frame-src 'self' https://*.webcontainer-api.io https://*.staticblitz.com",
+  `frame-src 'self' ${WEBCONTAINER_BOOT_FRAME} ${WEBCONTAINER_HOSTS.join(" ")}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
@@ -45,15 +59,18 @@ const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self' https://accounts.google.com https://github.com",
   "frame-ancestors 'none'",
+  `report-uri ${CSP_REPORT_PATH}`,
+  `report-to ${CSP_REPORT_GROUP}`,
 ].join("; ");
 
 export const securityHeaders = [
-  // Cross-origin isolation — required for WebContainers (SharedArrayBuffer).
+  // Cross-origin isolation, required for WebContainers (SharedArrayBuffer).
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
   { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
-  // CSP in report-only mode — observe before enforcing.
+  // CSP in report-only mode: observe before enforcing.
   { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
+  { key: "Reporting-Endpoints", value: `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"` },
   // Defence in depth.
   {
     key: "Strict-Transport-Security",
