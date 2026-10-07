@@ -20,6 +20,20 @@ describe('createOutputTail', () => {
     expect(tail.lines()).toEqual(['three', 'four'])
   })
 
+  it('drops control sequences, so echoing a line cannot clear the screen', () => {
+    const tail = createOutputTail(5)
+    // What Vite writes on a config change: blank lines, cursor home, clear down.
+    tail.push('\n\n\n\u001b[1;1H\u001b[0J\u001b[2m4:42:27 PM\u001b[22m \u001b[36m[vite]\u001b[39m restarting server...\n')
+    expect(tail.lines()).toEqual(['4:42:27 PM [vite] restarting server...'])
+    expect(tail.lines().join('')).not.toContain('\u001b')
+  })
+
+  it('keeps only the text written after the last carriage return', () => {
+    const tail = createOutputTail(5)
+    tail.push('\u001b[1G\u280b\r\u001b[1G\u2819\radded 64 packages\r\n')
+    expect(tail.lines()).toEqual(['added 64 packages'])
+  })
+
   it('includes an unfinished last line and skips blank ones', () => {
     const tail = createOutputTail(3)
     tail.push('\n\nerror: ENOENT package.json\n   \nnpm error code')

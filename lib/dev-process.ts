@@ -11,11 +11,30 @@ export type OutputTail = {
   lines(): string[];
 };
 
+const ESC = "\u001b";
+const BEL = "\u0007";
+// CSI sequences (colours, cursor moves, screen clears) and OSC sequences.
+const ESCAPE_SEQUENCE = new RegExp(
+  `${ESC}\\[[0-?]*[ -/]*[@-~]|${ESC}\\][^${BEL}]*(?:${BEL}|${ESC}\\\\)`,
+  "g"
+);
+
+/**
+ * A line as it reads on screen, without control sequences. Vite clears the
+ * screen on a restart; echoing that sequence again would wipe the report.
+ * After a carriage return only the text written last is visible.
+ */
+function plainLine(raw: string): string {
+  const text = raw.replace(ESCAPE_SEQUENCE, "").replace(/\r+$/, "");
+  return text.slice(text.lastIndexOf("\r") + 1);
+}
+
 export function createOutputTail(maxLines: number): OutputTail {
   const kept: string[] = [];
   let partial = "";
 
-  const keep = (line: string) => {
+  const keep = (raw: string) => {
+    const line = plainLine(raw);
     if (line.trim() === "") return;
     kept.push(line);
     if (kept.length > maxLines) kept.shift();
@@ -25,10 +44,11 @@ export function createOutputTail(maxLines: number): OutputTail {
     push(chunk) {
       const parts = (partial + chunk).split("\n");
       partial = parts.pop() ?? "";
-      for (const part of parts) keep(part.replace(/\r$/, ""));
+      for (const part of parts) keep(part);
     },
     lines() {
-      const all = partial.trim() === "" ? [...kept] : [...kept, partial];
+      const last = plainLine(partial);
+      const all = last.trim() === "" ? [...kept] : [...kept, last];
       return all.slice(-maxLines);
     },
   };
