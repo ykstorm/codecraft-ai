@@ -1,5 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { validateEnv, assertEnv } from '../lib/env-validate'
+import { validateEnv, assertEnv, isAuthConfigured } from '../lib/env-validate'
+
+const ALL = {
+  AUTH_SECRET: 'secret-value',
+  AUTH_GITHUB_ID: 'github-id',
+  AUTH_GITHUB_SECRET: 'github-secret',
+  AUTH_GOOGLE_ID: 'google-id',
+  AUTH_GOOGLE_SECRET: 'google-secret',
+  DATABASE_URL: 'mongodb://localhost:27017/test',
+}
+
+/** Stub every required variable, then apply the overrides. */
+function stubAll(overrides: Partial<Record<keyof typeof ALL, string>> = {}) {
+  for (const [name, value] of Object.entries({ ...ALL, ...overrides })) {
+    vi.stubEnv(name, value)
+  }
+}
 
 describe('validateEnv', () => {
   beforeEach(() => {
@@ -7,10 +23,7 @@ describe('validateEnv', () => {
   })
 
   it('returns valid when all required vars are present', () => {
-    vi.stubEnv('AUTH_SECRET', 'secret-value')
-    vi.stubEnv('AUTH_GITHUB_ID', 'github-id')
-    vi.stubEnv('AUTH_GOOGLE_ID', 'google-id')
-    vi.stubEnv('DATABASE_URL', 'mongodb://localhost:27017/test')
+    stubAll()
 
     const result = validateEnv()
     expect(result.valid).toBe(true)
@@ -18,10 +31,7 @@ describe('validateEnv', () => {
   })
 
   it('returns invalid with list of missing variables', () => {
-    vi.stubEnv('AUTH_SECRET', '')
-    vi.stubEnv('AUTH_GITHUB_ID', 'github-id')
-    vi.stubEnv('AUTH_GOOGLE_ID', 'google-id')
-    vi.stubEnv('DATABASE_URL', 'mongodb://localhost:27017/test')
+    stubAll({ AUTH_SECRET: '' })
 
     const result = validateEnv()
     expect(result.valid).toBe(false)
@@ -30,10 +40,7 @@ describe('validateEnv', () => {
   })
 
   it('detects multiple missing variables', () => {
-    vi.stubEnv('AUTH_SECRET', '  ')  // whitespace only — trimmed to empty
-    vi.stubEnv('AUTH_GITHUB_ID', '')
-    vi.stubEnv('AUTH_GOOGLE_ID', 'google-id')
-    vi.stubEnv('DATABASE_URL', 'mongodb://localhost')
+    stubAll({ AUTH_SECRET: '  ', AUTH_GITHUB_ID: '' }) // whitespace only, trimmed to empty
 
     const result = validateEnv()
     expect(result.valid).toBe(false)
@@ -43,29 +50,59 @@ describe('validateEnv', () => {
   })
 
   it('treats whitespace-only values as missing', () => {
-    vi.stubEnv('AUTH_SECRET', '   ')
-    vi.stubEnv('AUTH_GITHUB_ID', 'valid')
-    vi.stubEnv('AUTH_GOOGLE_ID', 'valid')
-    vi.stubEnv('DATABASE_URL', 'mongodb://localhost')
+    stubAll({ AUTH_SECRET: '   ' })
 
     const result = validateEnv()
     expect(result.valid).toBe(false)
     expect(result.missing).toContain('AUTH_SECRET')
   })
 
+  it('requires the provider secrets, not only the ids', () => {
+    stubAll({ AUTH_GITHUB_SECRET: '', AUTH_GOOGLE_SECRET: '' })
+
+    expect(validateEnv().missing).toEqual(['AUTH_GITHUB_SECRET', 'AUTH_GOOGLE_SECRET'])
+  })
+
   it('flags unset vars as missing', () => {
     // Ensure all required env vars are unset (not just empty string)
-    delete process.env.AUTH_SECRET
-    delete process.env.AUTH_GITHUB_ID
-    delete process.env.AUTH_GOOGLE_ID
-    delete process.env.DATABASE_URL
+    for (const name of Object.keys(ALL)) delete process.env[name]
 
     const result = validateEnv()
     expect(result.valid).toBe(false)
-    expect(result.missing).toContain('AUTH_SECRET')
-    expect(result.missing).toContain('AUTH_GITHUB_ID')
-    expect(result.missing).toContain('AUTH_GOOGLE_ID')
-    expect(result.missing).toContain('DATABASE_URL')
+    expect(result.missing).toEqual(Object.keys(ALL))
+  })
+
+  it('reads an env object when one is given', () => {
+    expect(validateEnv(ALL).valid).toBe(true)
+    expect(validateEnv({}).missing).toHaveLength(6)
+  })
+})
+
+describe('isAuthConfigured', () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('is false on a deployment with no variables', () => {
+    expect(isAuthConfigured({})).toBe(false)
+  })
+
+  it('is false when any one variable is missing or blank', () => {
+    for (const name of Object.keys(ALL)) {
+      expect(isAuthConfigured({ ...ALL, [name]: '' })).toBe(false)
+      expect(isAuthConfigured({ ...ALL, [name]: ' ' })).toBe(false)
+    }
+  })
+
+  it('is true when all six are set', () => {
+    expect(isAuthConfigured(ALL)).toBe(true)
+  })
+
+  it('reads process.env by default', () => {
+    stubAll()
+    expect(isAuthConfigured()).toBe(true)
+    vi.stubEnv('DATABASE_URL', '')
+    expect(isAuthConfigured()).toBe(false)
   })
 })
 
@@ -75,28 +112,19 @@ describe('assertEnv', () => {
   })
 
   it('does not throw when all vars present', () => {
-    vi.stubEnv('AUTH_SECRET', 'secret')
-    vi.stubEnv('AUTH_GITHUB_ID', 'id')
-    vi.stubEnv('AUTH_GOOGLE_ID', 'id')
-    vi.stubEnv('DATABASE_URL', 'mongodb://localhost')
+    stubAll()
 
     expect(assertEnv).not.toThrow()
   })
 
   it('throws with descriptive message listing missing vars', () => {
-    vi.stubEnv('AUTH_SECRET', '')
-    vi.stubEnv('AUTH_GITHUB_ID', 'id')
-    vi.stubEnv('AUTH_GOOGLE_ID', 'id')
-    vi.stubEnv('DATABASE_URL', 'mongodb://localhost')
+    stubAll({ AUTH_SECRET: '' })
 
     expect(assertEnv).toThrow('Missing required environment variables: AUTH_SECRET')
   })
 
   it('lists all missing vars in one message', () => {
-    vi.stubEnv('AUTH_SECRET', '')
-    vi.stubEnv('AUTH_GITHUB_ID', '')
-    vi.stubEnv('AUTH_GOOGLE_ID', 'google')
-    vi.stubEnv('DATABASE_URL', '')
+    stubAll({ AUTH_SECRET: '', AUTH_GITHUB_ID: '', DATABASE_URL: '' })
 
     expect(assertEnv).toThrow('AUTH_SECRET, AUTH_GITHUB_ID, DATABASE_URL')
   })

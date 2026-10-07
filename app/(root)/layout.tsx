@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { isAuthConfigured } from "@/lib/env-validate";
 
 export const metadata: Metadata = {
   title: "Codecraft, in-browser IDE",
@@ -22,9 +23,14 @@ export default function HomeLayout({
             <Link href="/playgrounds" className="hover:text-cyan-400">
               playgrounds
             </Link>
-            <Link href="/dashboard" className="hover:text-cyan-400">
-              dashboard
-            </Link>
+            {/* Only when sign-in can work. This layout is static, so the
+                check runs when the page is built; Vercel builds with the
+                same variables it runs with. */}
+            {isAuthConfigured() && (
+              <Link href="/dashboard" className="hover:text-cyan-400">
+                dashboard
+              </Link>
+            )}
             <ThemeToggle />
           </nav>
         </div>

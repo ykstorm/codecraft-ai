@@ -6,6 +6,10 @@ WebContainers, with a Monaco editor, an xterm terminal and a live preview.
 Live: [codecraft-ai-tau.vercel.app](https://codecraft-ai-tau.vercel.app). Next.js 16,
 React 19, TypeScript.
 
+The public deployment runs the playground only. It has no sign-in and no database, so
+there `/dashboard`, `/settings`, `/auth/sign-in` and `/api/auth/*` answer a plain 503
+page that says sign-in is not configured.
+
 [![CI](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/codecraft-ai/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
@@ -31,8 +35,9 @@ Pages:
 - `/api/now`: a liveness probe that returns today's date.
 
 The landing page, the gallery and the playgrounds are public, so the editor opens
-without signing in. `/dashboard` and `/settings` are behind NextAuth. See
-[`routes.ts`](routes.ts).
+without signing in. `/dashboard` and `/settings` are behind NextAuth when the auth
+variables are set (see Environment below); without them they answer 503. See
+[`routes.ts`](routes.ts) and [`proxy.ts`](proxy.ts).
 
 ## Architecture
 
@@ -89,7 +94,7 @@ so WebContainers work locally too.
 ### Environment
 
 The landing page and the playground need no secrets. `/dashboard`, `/settings` and
-the NextAuth callbacks need these:
+the NextAuth callbacks need all six of these:
 
 | Variable | Required for | Notes |
 |---|---|---|
@@ -97,6 +102,13 @@ the NextAuth callbacks need these:
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub sign-in | GitHub OAuth app |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google sign-in | Google OAuth client |
 | `DATABASE_URL` | Prisma (users and accounts) | a MongoDB connection string |
+
+If any of them is missing or blank, the app runs the playground only
+(`isAuthConfigured` in `lib/env-validate.ts`): the landing header has no dashboard
+link, and `/dashboard`, `/settings`, `/auth/sign-in` and `/api/auth/*` answer a 503 page
+instead of the 500 Auth.js would raise. The proxy checks on every request; the header
+link is decided when the static landing page is built, which on Vercel uses the same
+variables as the runtime.
 
 ## Limitations
 

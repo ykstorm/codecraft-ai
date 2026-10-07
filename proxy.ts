@@ -1,30 +1,23 @@
 import NextAuth from "next-auth";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
 import {
   DEFAULT_LOGIN_REDIRECT,
   apiAuthPrefix,
-  publicRoutes,
   authRoutes,
+  isPublicRoute,
 } from "@/routes";
+import { authUnavailableResponse } from "@/lib/auth-unavailable";
+import { isAuthConfigured } from "@/lib/env-validate";
 import authConfig from "./auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
+const gate = auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
 
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
-
-  // A publicRoutes entry ending in "/*" matches any path under that prefix,
-  // so the dynamic /playground/[id] routes are public without enumerating slugs.
-  const isPublicRoute = publicRoutes.some((route) => {
-    if (route.endsWith("/*")) {
-      return nextUrl.pathname.startsWith(route.slice(0, -1));
-    }
-    return nextUrl.pathname === route;
-  });
-
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
   if (isApiAuthRoute) {
@@ -38,13 +31,26 @@ export default auth((req) => {
     return null;
   }
 
-  if (!isLoggedIn && !isPublicRoute) {
+  if (!isLoggedIn && !isPublicRoute(nextUrl.pathname)) {
     // 307 keeps the method (and matches the smoke test); the default would be 302.
     return Response.redirect(new URL("/auth/sign-in", nextUrl), 307);
   }
 
   return null;
 });
+
+export default function proxy(req: NextRequest, event: NextFetchEvent) {
+  // Without the auth variables there is nothing to sign in to. Public pages
+  // pass straight through, and every other path, /auth/sign-in and
+  // /api/auth/* included, gets a plain 503 instead of the 500 Auth.js would
+  // raise. The check runs per request, so it follows the runtime environment.
+  if (!isAuthConfigured()) {
+    return isPublicRoute(req.nextUrl.pathname)
+      ? NextResponse.next()
+      : authUnavailableResponse();
+  }
+  return gate(req, event);
+}
 
 export const config = {
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],

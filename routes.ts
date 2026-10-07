@@ -1,7 +1,7 @@
-// Public routes — no authentication. The landing page, the gallery, and the
+// Public routes, no authentication. The landing page, the gallery, and the
 // live playgrounds are deliberately open so the editor opens without signing in.
-// An entry ending in "/*" matches any path under that prefix (see isPublicRoute
-// in proxy.ts), which covers the dynamic /playground/[id] routes.
+// An entry ending in "/*" matches any path under that prefix (see
+// isPublicRoute below), which covers the dynamic /playground/[id] routes.
 export const publicRoutes: string[] = [
   "/",
   "/playgrounds",
@@ -21,3 +21,12 @@ export const authRoutes: string[] = [
 export const apiAuthPrefix: string = "/api/auth";
 
 export const DEFAULT_LOGIN_REDIRECT = "/";
+
+export function isPublicRoute(pathname: string): boolean {
+  return publicRoutes.some((route) => {
+    if (route.endsWith("/*")) {
+      return pathname.startsWith(route.slice(0, -1));
+    }
+    return pathname === route;
+  });
+}

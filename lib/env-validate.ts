@@ -1,12 +1,17 @@
 /**
- * Environment validation for required runtime variables.
- * Throws a descriptive error if any required variable is missing.
+ * The environment sign-in needs, checked at run time.
+ *
+ * Without every one of these variables the deployment runs the playground
+ * only: proxy.ts answers 503 for the pages behind sign-in and for
+ * /api/auth/*, and the landing header leaves out the dashboard link.
  */
 
 const REQUIRED_ENV_VARS = [
   "AUTH_SECRET",
   "AUTH_GITHUB_ID",
+  "AUTH_GITHUB_SECRET",
   "AUTH_GOOGLE_ID",
+  "AUTH_GOOGLE_SECRET",
   "DATABASE_URL",
 ] as const;
 
@@ -17,11 +22,13 @@ export interface EnvValidationResult {
   missing: string[];
 }
 
-export function validateEnv(): EnvValidationResult {
+type Env = Record<string, string | undefined>;
+
+export function validateEnv(env: Env = process.env): EnvValidationResult {
   const missing: string[] = [];
 
   for (const varName of REQUIRED_ENV_VARS) {
-    if (!process.env[varName] || process.env[varName]?.trim() === "") {
+    if (!env[varName] || env[varName]?.trim() === "") {
       missing.push(varName);
     }
   }
@@ -30,6 +37,11 @@ export function validateEnv(): EnvValidationResult {
     valid: missing.length === 0,
     missing,
   };
+}
+
+/** True when sign-in can work: every variable above is set and not blank. */
+export function isAuthConfigured(env: Env = process.env): boolean {
+  return validateEnv(env).valid;
 }
 
 export function assertEnv(): void {
