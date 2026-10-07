@@ -373,7 +373,7 @@ export function useViteWebContainer(): UseViteWebContainer {
         });
       } catch (e) {
         if (disposed) return;
-        if (e instanceof BootTimeoutError) reloadOnResetRef.current = true;
+        reloadOnResetRef.current = e instanceof BootTimeoutError;
         setPhase("error");
         setError(classifyBootError(e));
         const raw = e instanceof Error ? e.message : String(e);
