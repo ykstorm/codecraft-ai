@@ -175,7 +175,8 @@
   .pane-name { color: var(--ink); font-weight: 600; }
   .pane-empty { display: grid; flex: 1; place-items: center; padding: 16px; color: var(--ink-soft); font-size: 0.875rem; text-align: center; }
   .preview { flex: 1; min-height: 0; width: 100%; }
-  .code-pane { flex: 1; min-width: 0; min-height: 0; background: var(--code-ground); }
+  /* color-scheme keeps the terminal's native scrollbar dark in the light palette. */
+  .code-pane { flex: 1; min-width: 0; min-height: 0; background: var(--code-ground); color-scheme: dark; }
   .terminal { padding: 8px; }
   .editor { display: flex; height: 100%; }
   .files { flex: 0 0 10rem; overflow: auto; background: var(--surface); border-right: 1px solid var(--line); }
