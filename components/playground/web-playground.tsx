@@ -1,28 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Loader2,
-  RefreshCw,
-  AlertTriangle,
-  RotateCcw,
-} from "lucide-react";
-import { useEffect } from "react";
+import dynamic from "next/dynamic";
+import { Panel as Pane, PanelGroup as PaneGroup } from "react-resizable-panels";
 
+import { ResizeHandle } from "@/components/playground/resize-handle";
+import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/ui/panel";
+import { StatusLine, type StatusTone } from "@/components/ui/status-line";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { setWebcontainerBootMs } from "@/lib/metrics-store";
 import {
   useViteWebContainer,
   type BootPhase,
 } from "@/hooks/use-vite-webcontainer";
-import dynamic from "next/dynamic";
-
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 
 // Monaco and xterm are browser-only (they touch `window`, workers, and the DOM
 // on import), so they are loaded client-side with no SSR pass.
@@ -39,22 +29,41 @@ const InteractiveTerminal = dynamic(
 );
 
 const PHASE_LABEL: Record<BootPhase, string> = {
-  idle: "starting…",
-  booting: "booting WebContainer…",
-  mounting: "mounting files…",
-  "restoring-snapshot": "restoring cached snapshot…",
-  installing: "npm install…",
-  "starting-dev": "starting dev server…",
-  ready: "ready",
-  error: "error",
-  unavailable: "unavailable",
+  idle: "Starting",
+  booting: "Booting the WebContainer",
+  mounting: "Mounting the template",
+  "restoring-snapshot": "Restoring the snapshot",
+  installing: "Installing dependencies",
+  "starting-dev": "Starting the dev server",
+  ready: "Running",
+  error: "Error",
+  unavailable: "Unavailable",
 };
+
+function statusText(phase: BootPhase, exitCode: number | null): string {
+  if (phase === "error" && exitCode != null) return `Error, exit code ${exitCode}`;
+  return PHASE_LABEL[phase];
+}
+
+function statusTone(phase: BootPhase): StatusTone {
+  if (phase === "ready") return "ok";
+  return phase === "error" || phase === "unavailable" ? "bad" : "neutral";
+}
+
+/** The measured time from page start to a running dev server. */
+function timingText(totalMs: number, fromSnapshot: boolean): string {
+  const seconds = (totalMs / 1000).toFixed(1);
+  return fromSnapshot
+    ? `Ready in ${seconds} s from the snapshot`
+    : `Ready in ${seconds} s, cold install`;
+}
 
 export function WebPlayground({ name }: { name: string }) {
   const isMobile = useIsMobile();
   const {
     phase,
     error,
+    exitCode,
     serverUrl,
     timings,
     container,
@@ -65,104 +74,72 @@ export function WebPlayground({ name }: { name: string }) {
     onOutput,
   } = useViteWebContainer();
 
-  useEffect(() => {
-    if (timings.bootMs != null) setWebcontainerBootMs(timings.bootMs);
-  }, [timings.bootMs]);
-
-  const failed =
-    phase === "error" || phase === "unavailable";
+  const failed = phase === "error" || phase === "unavailable";
   const containerReady = container != null && !failed;
-  const status = PHASE_LABEL[phase];
+  const status = statusText(phase, exitCode);
 
   if (isMobile) {
     return <MobileFallback name={name} />;
   }
 
   return (
-    <div className="flex h-screen flex-col px-4 py-4">
-      <div className="mb-3 flex items-center justify-between">
-        <Link
-          href="/playgrounds"
-          className="inline-flex items-center gap-2 font-mono text-xs text-muted-foreground hover:text-cyan-400"
-        >
-          <ArrowLeft className="h-4 w-4" /> playgrounds
-        </Link>
-        <div className="flex items-center gap-3 font-mono text-xs">
-          {!serverUrl && !failed && (
-            <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
+    <div className="ide">
+      <header className="bar">
+        <Link href="/playgrounds">Playgrounds</Link>
+        <h1 className="bar-title">{name}</h1>
+        <StatusLine tone={statusTone(phase)}>{status}</StatusLine>
+        <div className="bar-end">
+          {phase === "ready" && timings.totalMs != null && (
+            <p className="meta mono">{timingText(timings.totalMs, timings.fromSnapshot)}</p>
           )}
-          <span className="text-cyan-300">{name}</span>
-          <span className="text-muted-foreground">· {status}</span>
-          {timings.totalMs != null && (
-            <span
-              className="text-muted-foreground"
-              title="real measured boot time"
-            >
-              · {timings.fromSnapshot ? "cached" : "cold"}{" "}
-              {(timings.totalMs / 1000).toFixed(1)}s
-            </span>
-          )}
-          <button
+          <Button
             onClick={reset}
-            className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-muted-foreground transition-colors hover:border-cyan-400 hover:text-cyan-300"
-            title="delete the stored snapshot and reinstall from the template"
+            title="Delete the stored snapshot and install again from the template"
           >
-            <RotateCcw className="h-3 w-3" /> reset
-          </button>
+            {failed ? "Retry" : "Reset"}
+          </Button>
         </div>
-      </div>
+      </header>
 
       {error && (
-        <div className="mb-3 flex items-start justify-between gap-4 rounded-md border border-amber-500/40 bg-amber-500/5 px-4 py-3">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-            <p className="font-mono text-xs leading-relaxed text-amber-200/90">
-              {error}
-            </p>
-          </div>
-          <button
-            onClick={reset}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded border border-amber-500/40 px-2.5 py-1 font-mono text-xs text-amber-200 transition-colors hover:bg-amber-500/10"
-          >
-            <RefreshCw className="h-3 w-3" /> retry
-          </button>
-        </div>
+        <p role="alert" className="ide-error">
+          {error}
+        </p>
       )}
 
-      <div className="min-h-0 flex-1">
-        <ResizablePanelGroup direction="horizontal" className="rounded-md border border-border">
+      <main className="panes">
+        <PaneGroup direction="horizontal">
           {/* Left column: editor on top, terminal below */}
-          <ResizablePanel defaultSize={55} minSize={25}>
-            <ResizablePanelGroup direction="vertical">
-              <ResizablePanel defaultSize={65} minSize={20}>
-                <div className="h-full overflow-hidden bg-[#1e1e1e]">
-                  <CodeEditor
-                    containerReady={containerReady}
-                    writeFile={writeFile}
-                    readFile={readFile}
-                  />
-                </div>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={35} minSize={15}>
+          <Pane defaultSize={55} minSize={25}>
+            <PaneGroup direction="vertical">
+              <Pane defaultSize={65} minSize={20}>
+                <CodeEditor
+                  containerReady={containerReady}
+                  writeFile={writeFile}
+                  readFile={readFile}
+                />
+              </Pane>
+              <ResizeHandle label="Resize the editor and the terminal" />
+              <Pane defaultSize={35} minSize={15}>
                 <InteractiveTerminal shell={shell} registerSink={onOutput} />
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
+              </Pane>
+            </PaneGroup>
+          </Pane>
 
-          <ResizableHandle withHandle />
+          <ResizeHandle label="Resize the code and the preview" />
 
           {/* Right column: live preview */}
-          <ResizablePanel defaultSize={45} minSize={20}>
-            <div className="flex h-full flex-col">
-              <div className="border-b border-border bg-muted/40 px-4 py-2 font-mono text-xs text-muted-foreground">
-                preview {serverUrl ? "· live" : "· waiting"}
-              </div>
+          <Pane defaultSize={45} minSize={20}>
+            <section className="pane" aria-label="Preview">
+              <p className="pane-label">
+                <span className="pane-name">Preview</span>{" "}
+                {serverUrl ? "live" : failed ? "stopped" : "waiting for the dev server"}
+              </p>
               {serverUrl ? (
                 <iframe
                   title="preview"
                   src={serverUrl}
-                  className="min-h-0 flex-1 w-full bg-white"
+                  className="preview"
                   // Sandbox the untrusted preview. It may run scripts, use its
                   // own origin, post forms, open modals and popups — but it must
                   // not navigate or redirect the top-level window, and it gets no
@@ -173,47 +150,32 @@ export function WebPlayground({ name }: { name: string }) {
                   allow=""
                 />
               ) : (
-                <div className="flex min-h-0 flex-1 items-center justify-center font-mono text-xs text-muted-foreground">
-                  {failed ? "dev server not running" : `${status}`}
-                </div>
+                <p className="pane-empty">
+                  {failed ? "The dev server is not running." : status}
+                </p>
               )}
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+            </section>
+          </Pane>
+        </PaneGroup>
+      </main>
     </div>
   );
 }
 
 function MobileFallback({ name }: { name: string }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 py-10 text-center font-mono">
-      <div className="w-full max-w-md space-y-4">
-        <p className="cc-label">{`// ${name.toUpperCase()}`}</p>
-        <h1 className="text-xl text-cyan-200">Desktop only</h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          The editor needs a wider screen. The playground boots a full
-          WebContainer dev server with a code editor, an interactive terminal,
-          and a live preview side-by-side — that doesn&apos;t fit on a phone.
-          Open this on a laptop or desktop in Chrome, Edge, or Firefox.
+    <main className="page">
+      <h1>{name}</h1>
+      <Panel title="Desktop only">
+        <p>
+          The playground puts a code editor, a terminal and a live preview side
+          by side, which needs a screen at least 768 px wide. Open this page on a
+          laptop or desktop in a current Chrome, Edge or Firefox.
         </p>
-        <div className="overflow-hidden rounded-md border border-border bg-[#050505] p-4 text-left">
-          <pre className="font-mono text-[11px] leading-relaxed text-muted-foreground">
-            {`┌─ editor ───────┬─ preview ─┐
-│ src/App.jsx    │  Vite +   │
-│ ...            │  React    │
-├─ terminal ─────┤  (live)   │
-│ $ npm run dev  │           │
-└────────────────┴───────────┘`}
-          </pre>
-        </div>
-        <Link
-          href="/playgrounds"
-          className="inline-flex items-center gap-2 rounded border border-cyan-400/40 px-4 py-2 text-sm text-cyan-300 transition-colors hover:border-cyan-400 hover:bg-cyan-400/10"
-        >
-          <ArrowLeft className="h-4 w-4" /> browse templates
-        </Link>
-      </div>
-    </div>
+        <p>
+          <Link href="/playgrounds">Back to the playgrounds</Link>
+        </p>
+      </Panel>
+    </main>
   );
 }

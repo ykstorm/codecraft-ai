@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Editor, { loader } from "@monaco-editor/react";
+import Editor, { loader, type BeforeMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import type { FileSystemTree } from "@webcontainer/api";
 
 import { viteReactEditableFiles, viteReactTree } from "@/data/templates/vite-react";
+import { codeGround } from "@/lib/code-ground";
 
 // Self-host Monaco. Without this, @monaco-editor/react loads the editor from a
 // jsDelivr CDN at runtime; pointing its loader at the bundled `monaco-editor`
@@ -88,6 +89,18 @@ function templateFileContents(path: string): string {
   return TEMPLATE_FILES[path] ?? "";
 }
 
+// vs-dark as Monaco ships it, on the --code-ground token instead of its own
+// background.
+const THEME = "codecraft-dark";
+const defineTheme: BeforeMount = (m) => {
+  m.editor.defineTheme(THEME, {
+    base: "vs-dark",
+    inherit: true,
+    rules: [],
+    colors: { "editor.background": codeGround() },
+  });
+};
+
 function languageFor(path: string): string {
   if (path.endsWith(".jsx") || path.endsWith(".js")) return "javascript";
   if (path.endsWith(".tsx") || path.endsWith(".ts")) return "typescript";
@@ -147,21 +160,18 @@ export function CodeEditor({
   }
 
   return (
-    <div className="flex h-full">
-      <div className="w-40 shrink-0 overflow-auto border-r border-border bg-muted/20">
-        <p className="border-b border-border px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          files
+    <div className="editor">
+      <nav className="files" aria-label="Files">
+        <p className="pane-label">
+          <span className="pane-name">Files</span>
         </p>
-        <ul className="py-1">
+        <ul>
           {files.map((f) => (
             <li key={f}>
               <button
+                type="button"
                 onClick={() => setActive(f)}
-                className={`w-full truncate px-3 py-1.5 text-left font-mono text-xs transition-colors ${
-                  f === active
-                    ? "bg-cyan-400/10 text-cyan-300"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                aria-current={f === active ? "true" : undefined}
                 title={f}
               >
                 {f}
@@ -169,12 +179,17 @@ export function CodeEditor({
             </li>
           ))}
         </ul>
-      </div>
+        <p className="files-hint">
+          Tab indents in the editor. Ctrl+M (Ctrl+Shift+M on a Mac) makes it move
+          focus instead.
+        </p>
+      </nav>
 
-      <div className="min-w-0 flex-1">
+      <div className="code-pane">
         <Editor
           height="100%"
-          theme="vs-dark"
+          theme={THEME}
+          beforeMount={defineTheme}
           path={active}
           language={languageFor(active)}
           value={value}

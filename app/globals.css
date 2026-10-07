@@ -1,165 +1,216 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-jetbrains);
-  --font-mono: var(--font-jetbrains);
-  --color-cyan-accent: var(--accent-cyan);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
-
+/* Tokens copied from anchor (github.com/ykstorm/anchor, src/app/globals.css at
+   b5f40ef), which shares them with Homesty and the portfolio: bone paper, ink,
+   and one rust accent for links and the page's single action. Green and red
+   mark status only. --line-strong edges the controls at about 3:1 against the
+   panel. The dark palette applies with the system setting, unless the visitor
+   picked light, and whenever next-themes stamps data-theme="dark". */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  color-scheme: light;
+  --ground: #ecebe6;
+  --surface: #f5f4f0;
+  --ink: #17181a;
+  --ink-soft: #5f5e58;
+  --line: #d3d0c7;
+  --line-strong: rgba(23, 24, 26, 0.48);
+  --accent: #9a4a10;
+  --accent-strong: #73360a;
+  --accent-ink: #f5f4f0;
+  --ok: #23784f;
+  --bad: #b23b25;
+  --radius: 4px;
+  --depth: inset 0 1px 0 color-mix(in srgb, var(--accent) 14%, transparent),
+    0 24px 60px -36px rgba(0, 0, 0, 0.5);
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* Monaco and xterm keep their dark themes in both palettes, so their panes
+     sit on the dark --ground (read by lib/code-ground.ts). */
+  --code-ground: #0b0c0e;
 }
 
-.dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0b0c0e;
+    --surface: #111316;
+    --ink: #e9e6de;
+    --ink-soft: #8f8c83;
+    --line: #23262c;
+    --line-strong: rgba(233, 230, 222, 0.38);
+    --accent: #f2a93b;
+    --accent-strong: #ffc266;
+    --accent-ink: #0b0c0e;
+    --ok: #4fbf8a;
+    --bad: #f0745a;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0b0c0e;
+  --surface: #111316;
+  --ink: #e9e6de;
+  --ink-soft: #8f8c83;
+  --line: #23262c;
+  --line-strong: rgba(233, 230, 222, 0.38);
+  --accent: #f2a93b;
+  --accent-strong: #ffc266;
+  --accent-ink: #0b0c0e;
+  --ok: #4fbf8a;
+  --bad: #f0745a;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+  /* A small reset: no default margins, border-box sizing, unstyled lists and
+     headings, and buttons that take the page's font and colour. */
+  *, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+  html { line-height: 1.5; -webkit-text-size-adjust: 100%; }
+  h1, h2, h3 { font-size: inherit; font-weight: inherit; }
+  a { color: inherit; text-decoration: inherit; }
+  ol, ul { list-style: none; }
+  button { font: inherit; color: inherit; background-color: transparent; border-radius: 0; }
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-jetbrains), ui-monospace, monospace;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    line-height: 1.55;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; }
   }
 }
 
-/* Theme tokens. Accent cyan is the only accent colour. */
-:root {
-  --accent-cyan: #22d3ee;
-}
+@layer components {
+  .page { max-width: 46rem; margin-inline: auto; padding: 24px 16px 64px; }
+  /* Links are underlined: the accent alone is under 3:1 against body text. */
+  :is(.page, .bar) a:not(.button) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; transition: color 150ms ease; }
+  :is(.page, .bar) a:not(.button):hover { color: var(--accent-strong); }
+  .page h1 { margin: 24px 0 4px; font-size: 1.5rem; font-weight: 600; }
+  .lede, .meta, .status { margin: 0; color: var(--ink-soft); }
+  .meta, .status { font-size: 0.875rem; }
+  .mono { font-family: var(--font-data); font-size: 0.8125rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
-/* Dark default #050505 (cyan unchanged across themes). */
-.dark {
-  --background: #050505;
-  --foreground: #e5e7eb;
-  --card: #0a0a0a;
-  --card-foreground: #e5e7eb;
-  --popover: #0a0a0a;
-  --popover-foreground: #e5e7eb;
-  --border: rgba(255, 255, 255, 0.08);
-  --muted: #111111;
-  --muted-foreground: #8b8b8b;
-}
+  .site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  .site-name { font-weight: 600; }
+  .theme-toggle {
+    margin-left: auto;
+    padding: 2px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: border-color 150ms ease;
+  }
+  .theme-toggle:hover { border-color: var(--ink); }
 
-/* // ALL CAPS section label — cyan, tracking-widest, // prefixed. */
-.cc-label {
-  color: var(--accent-cyan);
-  font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
+  .panel {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--depth);
+  }
+  .panel > * + * { margin-top: 12px; }
+  .panel-title { font-size: 1.0625rem; font-weight: 600; }
+  .list { padding-left: 1.25rem; list-style: disc; }
+  .transcript {
+    max-height: 14rem;
+    overflow: auto;
+    padding: 8px 10px;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    white-space: pre-wrap;
+  }
 
-/* Card hover: scale(1.02) + cyan border. No shadow. No gradient. */
-.cc-card {
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-  box-shadow: none;
-}
-.cc-card:hover {
-  transform: scale(1.02);
-  border-color: var(--accent-cyan);
-  box-shadow: none;
+  .button {
+    min-height: 40px;
+    padding: 8px 18px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+  a.button { display: inline-flex; align-items: center; }
+  .button:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+  .button:disabled { cursor: progress; opacity: 0.7; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+  .status[data-tone="ok"] { color: var(--ok); }
+  .status[data-tone="bad"] { color: var(--bad); }
+
+  /* The playground: a bar on the surface, then three panes. */
+  .ide { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 16px;
+    padding: 4px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    font-size: 0.875rem;
+  }
+  .bar-title { font-weight: 600; }
+  .bar-end { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+  .bar .button { min-height: 32px; padding: 4px 14px; }
+  .ide-error { padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--line); color: var(--bad); font-size: 0.875rem; }
+  .panes { flex: 1 1 0; min-height: 0; }
+  .pane { display: flex; flex-direction: column; height: 100%; }
+  .pane-label {
+    display: flex;
+    gap: 8px;
+    padding: 4px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+  }
+  .pane-name { color: var(--ink); font-weight: 600; }
+  .pane-empty { display: grid; flex: 1; place-items: center; padding: 16px; color: var(--ink-soft); font-size: 0.875rem; text-align: center; }
+  .preview { flex: 1; min-height: 0; width: 100%; }
+  .code-pane { flex: 1; min-width: 0; min-height: 0; background: var(--code-ground); }
+  .terminal { padding: 8px; }
+  .editor { display: flex; height: 100%; }
+  .files { flex: 0 0 10rem; overflow: auto; background: var(--surface); border-right: 1px solid var(--line); }
+  .files button {
+    display: block;
+    width: 100%;
+    padding: 4px 12px;
+    overflow: hidden;
+    color: var(--ink-soft);
+    font-family: var(--font-data);
+    font-size: 0.8125rem;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 150ms ease;
+  }
+  .files button:hover { color: var(--ink); }
+  .files button[aria-current="true"] { color: var(--ink); background: var(--ground); box-shadow: inset 2px 0 0 var(--accent); }
+  .files button:focus-visible { outline-offset: -2px; }
+  .files-hint { padding: 8px 12px; color: var(--ink-soft); font-size: 0.75rem; }
+  /* A splitter between two panes: drag it, or focus it and use the arrow keys. */
+  .resize-handle {
+    display: flex;
+    flex: 0 0 9px;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 0 solid var(--line);
+    border-inline-width: 1px;
+    color: var(--ink-soft);
+    transition: color 150ms ease;
+  }
+  .resize-handle[data-panel-group-direction="vertical"] { border-inline-width: 0; border-block-width: 1px; }
+  .resize-handle[data-panel-group-direction="vertical"] svg { transform: rotate(90deg); }
+  .resize-handle:is([data-resize-handle-state="hover"], [data-resize-handle-state="drag"]) { color: var(--accent); }
+  .resize-handle:focus-visible { outline-offset: -2px; }
 }

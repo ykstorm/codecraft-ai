@@ -28,8 +28,10 @@ The playground is five source files plus a template and a few small modules.
    `performance.now()`. Kills the dev server and shell on unmount.
 
 2. `components/playground/web-playground.tsx`: the layout. Three resizable
-   panels (editor with its file list, terminal, preview), status/timings header,
-   reset and retry, and a desktop-only hint on narrow viewports. The hook is
+   panels (editor with its file list, terminal, preview) under a bar that shows
+   the template name, the boot state and exit code as text, the measured boot
+   time and one reset button (labelled retry after an error), and a desktop-only
+   note on narrow viewports. The hook is
    called before the width check, so the container boots behind that hint too.
    The preview iframe is sandboxed.
 

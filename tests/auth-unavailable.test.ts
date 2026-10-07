@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest, type NextFetchEvent } from 'next/server'
 
@@ -57,6 +58,17 @@ describe('authUnavailableResponse', () => {
 
   it('says sign-in is not configured', () => {
     expect(AUTH_UNAVAILABLE_MESSAGE).toBe('Sign-in is not configured on this deployment')
+  })
+
+  it('copies its colour and font tokens from app/globals.css without drift', async () => {
+    // Every "--name: value" pair, whitespace collapsed, so line breaks do not count.
+    const tokens = (css: string) =>
+      [...css.matchAll(/(--[\w-]+):\s*([^;{}]+);/g)].map(([, name, value]) => `${name}: ${value.replace(/\s+/g, ' ').trim()}`)
+    const page = await authUnavailableResponse().text()
+    const style = page.match(/<style>([\s\S]*)<\/style>/)?.[1] ?? ''
+    const copied = tokens(style)
+    expect(copied.length).toBeGreaterThan(10)
+    expect(tokens(readFileSync('app/globals.css', 'utf8'))).toEqual(expect.arrayContaining(copied))
   })
 })
 

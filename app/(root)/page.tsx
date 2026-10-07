@@ -1,129 +1,50 @@
-import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-import playgroundsData from "@/data/playgrounds.json";
-import { AsciiBoot } from "@/components/ui/ascii-boot";
-import { BinaryBackground } from "@/components/ui/binary-background";
-import { ProjectCard, type Playground } from "@/components/ui/project-card";
-import { TechBadge } from "@/components/ui/tech-badge";
+import playgrounds from "@/data/playgrounds.json";
+import { Panel } from "@/components/ui/panel";
 import { ShellDemo } from "@/components/ui/shell-demo";
-import { LiveTelemetry } from "@/components/ui/live-telemetry";
 
-const playgrounds = playgroundsData as Playground[];
+const starter = playgrounds[0];
 
 const STACK = [
-  "TypeScript",
-  "Node.js",
-  "WebContainers",
-  "Monaco",
-  "xterm.js",
-  "Next.js",
-  "React",
-  "Tailwind",
-  "Service Workers",
-  "SharedArrayBuffer",
-  "COOP/COEP",
-  "Vite",
+  "Next.js 16 and React 19 in TypeScript for the host pages",
+  "WebContainers (@webcontainer/api) for Node.js inside the tab",
+  "Monaco, bundled with the app instead of loaded from a CDN",
+  "xterm.js, wired to the container's jsh shell",
+  "react-resizable-panels for the three panes",
+  "Vite and React 18 for the project that runs in the container",
 ];
-
-function SectionLabel({ children }: { children: string }) {
-  return <p className="cc-label">{`// ${children}`}</p>;
-}
 
 export default function Home() {
   return (
     <>
-      <AsciiBoot />
-
-      <div className="mx-auto max-w-5xl px-4">
-        {/* ── Product hero ─────────────────────────────────────── */}
-        <section className="relative overflow-hidden py-24">
-          <BinaryBackground />
-          <div className="relative z-10">
-            <h1 className="font-mono text-5xl font-extrabold leading-tight tracking-tight text-foreground sm:text-6xl">
-              Codecraft, <span className="text-cyan-300">in-browser IDE</span>
-            </h1>
-            <p className="mt-6 max-w-2xl font-mono text-sm leading-relaxed text-muted-foreground">
-              A real Vite + React dev server runs inside your browser tab via
-              WebContainers. You get an editable Monaco editor, an interactive
-              xterm terminal wired to a live shell, and a hot-reloading preview.
-              No backend, no install.
-            </p>
-            <p className="mt-3 max-w-2xl font-mono text-xs text-muted-foreground">
-              The first visit is a cold boot: Node and npm install run in your
-              tab. Return visits restore the cached project snapshot instead of
-              reinstalling, when it fit the storage budget, and the playground
-              header shows the measured boot time.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link
-                href="/playgrounds"
-                className="inline-flex items-center gap-2 rounded border border-cyan-400/40 bg-cyan-400/10 px-4 py-2 font-mono text-sm text-cyan-300 transition-colors hover:border-cyan-400"
-              >
-                launch playgrounds
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ── // PLAYGROUNDS ───────────────────────────────────── */}
-        <section className="border-t border-border py-20">
-          <SectionLabel>PLAYGROUNDS</SectionLabel>
-          <h2 className="mt-3 font-mono text-2xl font-bold text-foreground">
-            Live environments
-          </h2>
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-            {playgrounds.map((p) => (
-              <ProjectCard key={p.slug} project={p} />
-            ))}
-          </div>
-        </section>
-
-        {/* ── // SHELL ─────────────────────────────────────────── */}
-        <section className="border-t border-border py-20">
-          <SectionLabel>SHELL</SectionLabel>
-          <h2 className="mt-3 font-mono text-2xl font-bold text-foreground">
-            Read-only WebContainer
-          </h2>
-          <p className="mt-2 max-w-2xl font-mono text-sm text-muted-foreground">
-            A real WebContainer boots in your browser and runs{" "}
-            <span className="text-cyan-300">ls &amp;&amp; node -v</span>.
-          </p>
-          <div className="mt-8 max-w-2xl">
-            <ShellDemo />
-          </div>
-        </section>
-
-        {/* ── // TECHNICAL ARSENAL ─────────────────────────────── */}
-        <section className="border-t border-border py-20">
-          <SectionLabel>STACK</SectionLabel>
-          <h2 className="mt-3 font-mono text-2xl font-bold text-foreground">
-            Stack
-          </h2>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {STACK.map((s) => (
-              <TechBadge key={s} label={s} />
-            ))}
-          </div>
-        </section>
-
-        {/* ── // LIVE TELEMETRY ────────────────────────────────── */}
-        <section className="border-t border-border py-20">
-          <SectionLabel>LIVE TELEMETRY</SectionLabel>
-          <h2 className="mt-3 font-mono text-2xl font-bold text-foreground">
-            Measured in your browser
-          </h2>
-          <div className="mt-8 max-w-2xl">
-            <LiveTelemetry />
-          </div>
-        </section>
-
-        <footer className="border-t border-border py-10 font-mono text-xs text-muted-foreground">
-          <span className="text-cyan-400">{"//"}</span> codecraft, runs in the
-          browser
-        </footer>
+      <h1>Codecraft</h1>
+      <p>
+        An in-browser IDE. A Vite + React dev server runs inside the browser tab
+        through WebContainers, with a Monaco editor, an xterm terminal and a live
+        preview. There is no server behind the editor: the dev server runs on the
+        visitor&apos;s machine, in a sandbox the browser isolates with COOP and
+        COEP headers.
+      </p>
+      <div className="row">
+        <Link href={`/playground/${starter.slug}`} className="button">
+          Open the {starter.name} playground
+        </Link>
+        <p className="meta">
+          The first visit runs npm install in your tab and is slow. Later visits
+          restore a stored snapshot when it fits the storage budget.
+        </p>
       </div>
+
+      <ShellDemo />
+
+      <Panel title="Stack">
+        <ul className="list">
+          {STACK.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </Panel>
     </>
   );
 }

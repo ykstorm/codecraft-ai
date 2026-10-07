@@ -2,7 +2,6 @@
   {
     "slug": "vite-react-starter",
     "name": "Vite + React",
-    "tagline": "Fast HMR React playground",
     "description": "A minimal Vite + React project that boots a real dev server inside your browser tab via WebContainers. Edit src/App.jsx and watch it hot-reload in the live preview.",
     "tags": ["Vite", "React", "WebContainer"]
   }

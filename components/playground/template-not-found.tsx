@@ -1,26 +1,20 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
-// Friendly 200 for unknown template slugs. The smoke test asserts the
-// "Template not found" copy, so keep that wording.
+import { PageShell } from "@/components/page-shell";
+import { Panel } from "@/components/ui/panel";
+
+// An unknown template slug answers 200 with this page. The smoke test looks
+// for the "Template not found" wording, so keep it.
 export function TemplateNotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 font-mono">
-      <div className="w-full max-w-md space-y-4 text-center">
-        <p className="cc-label">{`// 404`}</p>
-        <div className="text-2xl text-cyan-200">Template not found</div>
-        <p className="text-sm text-muted-foreground">
-          &gt; that template slug does not exist
+    <PageShell>
+      <h1>Template not found</h1>
+      <Panel>
+        <p>
+          No template has that name. <Link href="/playgrounds">See the playgrounds</Link> for
+          the ones that run.
         </p>
-        <div className="pt-4">
-          <Link
-            href="/playgrounds"
-            className="inline-flex items-center gap-2 rounded border border-cyan-400/40 px-4 py-2 text-sm text-cyan-300 transition-colors hover:border-cyan-400 hover:bg-cyan-400/10"
-          >
-            Browse all templates <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
-    </div>
+      </Panel>
+    </PageShell>
   );
 }
