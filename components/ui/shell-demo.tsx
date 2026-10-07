@@ -1,44 +1,60 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Play } from "lucide-react";
-import { setWebcontainerBootMs } from "@/lib/metrics-store";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/ui/panel";
+import { StatusLine, type StatusTone } from "@/components/ui/status-line";
 import { getWebContainer } from "@/lib/webcontainer";
 
+type Run =
+  | { step: "idle" }
+  | { step: "booting" }
+  | { step: "running"; bootMs: number }
+  | { step: "done"; bootMs: number }
+  | { step: "failed"; message: string };
+
+function describe(run: Run): { tone: StatusTone; text: string } {
+  switch (run.step) {
+    case "idle":
+      return { tone: "neutral", text: "Not run yet. Nothing boots until you press Run." };
+    case "booting":
+      return { tone: "neutral", text: "Booting the WebContainer" };
+    case "running":
+      return { tone: "neutral", text: `Boot time: ${run.bootMs} ms. Running ls && node -v` };
+    case "done":
+      return { tone: "ok", text: `Boot time: ${run.bootMs} ms` };
+    case "failed":
+      return { tone: "bad", text: run.message };
+  }
+}
+
 /**
- * <ShellDemo> — a read-only WebContainer that runs `ls && node -v` on demand.
- * It boots only when the visitor clicks "run" (booting a WebContainer on page
- * load would spin up a VM nobody asked for), streams output into a faux
- * terminal, and records the boot time into the shared metrics store for the
- * // LIVE TELEMETRY section. Degrades to a static transcript if cross-origin
- * isolation / WebContainer is unavailable.
+ * Boots a WebContainer when the visitor presses Run, runs `ls && node -v` in
+ * it and shows the output with the measured boot time. Nothing boots before
+ * the press. The container is the one the playground uses
+ * (lib/webcontainer.ts), so once it is up in this tab the boot time is close
+ * to zero.
  */
 export function ShellDemo() {
-  const [lines, setLines] = useState<string[]>(["$ ls && node -v"]);
-  const [running, setRunning] = useState(false);
-  const [started, setStarted] = useState(false);
-  const startedRef = useRef(false);
+  const [run, setRun] = useState<Run>({ step: "idle" });
+  const [output, setOutput] = useState("");
 
-  const append = (s: string) =>
-    setLines((prev) => [...prev, ...s.split("\n").filter(Boolean)]);
-
-  const run = async () => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    setStarted(true);
-    setRunning(true);
-
+  async function start() {
+    setOutput("");
+    if (!window.crossOriginIsolated) {
+      setRun({
+        step: "failed",
+        message: "Cross-origin isolation is off in this tab, so the WebContainer cannot boot.",
+      });
+      return;
+    }
+    setRun({ step: "booting" });
     try {
-      if (typeof window === "undefined" || !window.crossOriginIsolated) {
-        append("[info] cross-origin isolation off: static transcript");
-        append("data  node_modules  package.json  README.md");
-        append("v20.x");
-        return;
-      }
       const t0 = performance.now();
       const wc = await getWebContainer();
       const bootMs = Math.round(performance.now() - t0);
-      setWebcontainerBootMs(bootMs);
+      setRun({ step: "running", bootMs });
       await wc.mount({
         "package.json": {
           file: { contents: '{"name":"codecraft-shell","type":"module"}' },
@@ -49,50 +65,36 @@ export function ShellDemo() {
         "README.md": { file: { contents: "# codecraft" } },
       });
       const proc = await wc.spawn("sh", ["-c", "ls && node -v"]);
-      proc.output.pipeTo(
+      void proc.output.pipeTo(
         new WritableStream({
           write(chunk) {
-            append(String(chunk));
+            setOutput((prev) => prev + chunk);
           },
         })
       );
       await proc.exit;
-      append(`[boot ${bootMs}ms]`);
+      setRun({ step: "done", bootMs });
     } catch (err) {
-      append(`[warn] ${err instanceof Error ? err.message : "shell unavailable"}`);
-    } finally {
-      setRunning(false);
+      setRun({ step: "failed", message: err instanceof Error ? err.message : String(err) });
     }
-  };
+  }
+
+  const busy = run.step === "booting" || run.step === "running";
+  const { tone, text } = describe(run);
 
   return (
-    <div className="cc-card overflow-hidden">
-      <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2">
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-cyan-400/40" />
-          <span className="font-mono text-xs text-muted-foreground">
-            read-only · webcontainer
-          </span>
-        </div>
-        {!started && (
-          <button
-            onClick={run}
-            className="inline-flex items-center gap-1.5 rounded border border-cyan-400/40 px-2.5 py-1 font-mono text-xs text-cyan-300 transition-colors hover:border-cyan-400 hover:bg-cyan-400/10"
-          >
-            <Play className="h-3 w-3" /> run
-          </button>
-        )}
-        {running && (
-          <span className="font-mono text-xs text-muted-foreground">running…</span>
-        )}
+    <Panel title="Shell demo">
+      <p className="meta">
+        Boots a WebContainer in this tab and runs{" "}
+        <code className="mono">ls &amp;&amp; node -v</code> in it.
+      </p>
+      {output && <pre className="transcript mono">{output}</pre>}
+      <div className="row">
+        <Button onClick={start} disabled={busy}>
+          Run
+        </Button>
+        <StatusLine tone={tone}>{text}</StatusLine>
       </div>
-      <pre className="max-h-56 overflow-auto p-4 font-mono text-xs leading-relaxed text-foreground">
-        {lines.map((l, i) => (
-          <div key={i} className={l.startsWith("$") ? "text-cyan-400" : ""}>
-            {l}
-          </div>
-        ))}
-      </pre>
-    </div>
+    </Panel>
   );
 }

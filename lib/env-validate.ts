@@ -3,7 +3,7 @@
  *
  * Without every one of these variables the deployment runs the playground
  * only: proxy.ts answers 503 for the pages behind sign-in and for
- * /api/auth/*, and the landing header leaves out the dashboard link.
+ * /api/auth/*, and the site links leave out the dashboard.
  */
 
 const REQUIRED_ENV_VARS = [

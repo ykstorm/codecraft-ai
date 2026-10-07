@@ -1,17 +1,13 @@
-import Image from 'next/image'
-import React from 'react'
+import { PageShell } from "@/components/page-shell";
+import SignInForm from "@/components/auth/sign-in-form";
 
-import SignInForm from '@/components/auth/sign-in-form'
+export const dynamic = "force-dynamic";
 
-export const dynamic = 'force-dynamic'
-
-const Page = () => {
+export default function SignInPage() {
   return (
-    <>
-    <Image src={"/login.svg"} alt='Login-Image' height={300}  width={300} className='m-6 object-cover'/>
-    <SignInForm/>
-    </>
-  )
+    <PageShell>
+      <h1>Sign in</h1>
+      <SignInForm />
+    </PageShell>
+  );
 }
-
-export default Page

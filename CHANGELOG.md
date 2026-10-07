@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- The host pages (landing, gallery, playground bar and file list, desktop-only
+  note, sign-in, 404 and the 503 page) use the shared tokens from anchor in plain
+  CSS: one accent, 4px radii, the system font and one mono, light and dark. The
+  playground bar shows the boot state, the exit code and the boot time as text.
+- Removed Tailwind, the shadcn components, the icon library, the boot overlay,
+  the falling-digits background and the JetBrains Mono font, with their
+  dependencies.
+
 ### Fixed
 - The snapshot restore: the hook exported the whole container filesystem and
   mounted it into the project folder, so return visits failed. It now exports

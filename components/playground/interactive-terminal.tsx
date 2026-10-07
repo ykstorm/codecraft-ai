@@ -6,6 +6,8 @@ import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { WebContainerProcess } from "@webcontainer/api";
 
+import { codeGround } from "@/lib/code-ground";
+
 export function InteractiveTerminal({
   shell,
   registerSink,
@@ -36,7 +38,7 @@ export function InteractiveTerminal({
         cursorBlink: true,
         scrollback: 2000,
         theme: {
-          background: "#050505",
+          background: codeGround(),
           foreground: "#e5e7eb",
           cursor: "#22d3ee",
         },
@@ -118,11 +120,12 @@ export function InteractiveTerminal({
   }, [shell]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-border bg-muted/40 px-4 py-2 font-mono text-xs text-muted-foreground">
-        terminal · webcontainer {shell ? "· interactive" : ""}
-      </div>
-      <div ref={hostRef} className="min-h-0 flex-1 bg-[#050505] p-2" />
-    </div>
+    <section className="pane" aria-label="Terminal">
+      <p className="pane-label">
+        <span className="pane-name">Terminal</span>{" "}
+        {shell ? "jsh, takes input" : "boot output"}
+      </p>
+      <div ref={hostRef} className="code-pane terminal" />
+    </section>
   );
 }

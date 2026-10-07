@@ -50,6 +50,8 @@ type BootTimings = {
 type UseViteWebContainer = {
   phase: BootPhase;
   error: string | null;
+  /** the exit code behind the error, when a process exited (install or dev server) */
+  exitCode: number | null;
   serverUrl: string | null;
   timings: BootTimings;
   /** the live WebContainer once booted, else null */
@@ -85,7 +87,11 @@ const SNAPSHOT_KEY = `${SLUG}-${hashTree(viteReactTree)}`;
 type Emit = (s: string) => void;
 
 /** A boot failure whose message is already fit to show the user. */
-class BootError extends Error {}
+class BootError extends Error {
+  constructor(message: string, readonly exitCode: number | null = null) {
+    super(message);
+  }
+}
 
 /** Turn an unexpected thrown error into a user-facing message. */
 function classifyBootError(err: unknown): string {
@@ -215,7 +221,8 @@ async function restoreOrInstall(
   }
   if (code !== 0) {
     throw new BootError(
-      `npm install exited ${code}. This usually means the *.staticblitz.com CDN was unreachable mid-install (content blocker / VPN / unstable network). Retry on a stable connection.`
+      `npm install exited ${code}. This usually means the *.staticblitz.com CDN was unreachable mid-install (content blocker / VPN / unstable network). Retry on a stable connection.`,
+      code
     );
   }
 
@@ -250,6 +257,7 @@ async function startDevAndShell(
 export function useViteWebContainer(): UseViteWebContainer {
   const [phase, setPhase] = useState<BootPhase>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [exitCode, setExitCode] = useState<number | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [container, setContainer] = useState<WebContainer | null>(null);
   const [shell, setShell] = useState<WebContainerProcess | null>(null);
@@ -303,6 +311,7 @@ export function useViteWebContainer(): UseViteWebContainer {
     setServerUrl(null);
     setShell(null);
     setError(null);
+    setExitCode(null);
     setForceCold(true);
     setPhase("idle");
     setAttempt((a) => a + 1);
@@ -368,6 +377,7 @@ export function useViteWebContainer(): UseViteWebContainer {
           onExit: (code) => {
             setServerUrl(null);
             setPhase("error");
+            setExitCode(code);
             setError(devExitMessage(code));
           },
         });
@@ -375,6 +385,7 @@ export function useViteWebContainer(): UseViteWebContainer {
         if (disposed) return;
         reloadOnResetRef.current = e instanceof BootTimeoutError;
         setPhase("error");
+        setExitCode(e instanceof BootError ? e.exitCode : null);
         setError(classifyBootError(e));
         const raw = e instanceof Error ? e.message : String(e);
         emit(`\r\nerror: ${raw}\r\n`);
@@ -402,6 +413,7 @@ export function useViteWebContainer(): UseViteWebContainer {
   return {
     phase,
     error,
+    exitCode,
     serverUrl,
     timings,
     container,

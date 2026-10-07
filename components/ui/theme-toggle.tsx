@@ -2,37 +2,26 @@
 
 import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
 
 const emptySubscribe = () => () => {};
 
+// Switches between the light and dark palettes; next-themes stores the choice
+// and stamps it on <html> as data-theme. Rendered only after mount: the server
+// cannot know the stored choice, so its guess would not hydrate.
 export function ThemeToggle() {
-  const { setTheme, theme } = useTheme();
-  // Client-mount gate (server snapshot false, client true) — avoids rendering a
-  // theme-dependent icon during SSR, which would hydrate-mismatch. No effect, so
-  // no setState-in-effect.
+  const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
     () => false
   );
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
+  const next = resolvedTheme === "dark" ? "light" : "dark";
   return (
-    <div
-      className="cursor-pointer"
-      onClick={() => {
-        setTheme(theme === "light" ? "dark" : "light");
-      }}
-    >
-      {theme === "light" ? (
-        <Moon className="h-5 w-5 text-black" />
-      ) : (
-        <Sun className="h-5 w-5 text-white" color="white" />
-      )}
-    </div>
+    <button type="button" className="theme-toggle" onClick={() => setTheme(next)}>
+      Use {next} theme
+    </button>
   );
 }

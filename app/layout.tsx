@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { ThemeProvider } from "@/components/providers/theme-providers";
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-});
 
 const PRODUCT_DESC =
   "An in-browser IDE. A real Vite + React dev server runs in the browser tab via WebContainers, with a Monaco editor, an xterm terminal, and a live preview.";
@@ -38,16 +32,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${jetbrainsMono.variable} font-mono antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div className="flex flex-col min-h-screen">
-            <div className="flex-1">{children}</div>
-          </div>
+      <body>
+        {/* With no stored choice the system setting picks the palette. */}
+        <ThemeProvider attribute="data-theme" defaultTheme="system" disableTransitionOnChange>
+          {children}
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

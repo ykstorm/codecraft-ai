@@ -21,15 +21,18 @@ a sandbox the browser isolates with COOP and COEP headers.
 
 Pages:
 
-- `/`: the landing page. It has the playground list, a read-only WebContainer that runs
-  `ls && node -v` as a demo, the stack list, and the boot time of that demo measured
-  in your own browser (nothing is hardcoded; the value is whatever the shell demo
-  recorded).
+- `/`: the landing page. It has a short description, a link to the Vite + React
+  playground, a shell demo that boots a WebContainer and runs `ls && node -v` when you
+  press Run, with the boot time it measured in your own browser (nothing is
+  hardcoded), and the stack list.
 - `/playgrounds`: the template gallery. One template is wired, Vite + React. Others
   are added only when they boot end to end.
 - `/playground/[slug]`: the IDE. Three resizable panels: a Monaco editor with a file
   list beside it, an xterm terminal connected to the container's `jsh` shell, and a
-  preview iframe served from the WebContainer's `server-ready` URL. Edits are written
+  preview iframe served from the WebContainer's `server-ready` URL. A bar above them
+  shows the template name, the boot state as text (booting, installing, restoring the
+  snapshot, running, or the error with its exit code), the measured boot time and the
+  reset button. Edits are written
   into the container's filesystem after a 300 ms debounce and Vite's HMR refreshes the
   preview. On a narrow viewport the page shows a desktop-only note, but the
   WebContainer still boots behind it: the boot hook runs before the width check
@@ -83,10 +86,11 @@ local to the tab.
 
 ## Stack and local development
 
-Next.js 16 (App Router, the host app), React 19, TypeScript, Tailwind 4,
-`@webcontainer/api`, `@xterm/xterm` with `@xterm/addon-fit`, `@monaco-editor/react`
-with a self-hosted `monaco-editor` (no CDN), `react-resizable-panels`, next-themes,
-Prisma, NextAuth. The template booted inside the WebContainer is Vite + React 18.
+Next.js 16 (App Router, the host app), React 19, TypeScript, plain CSS on shared
+design tokens (`app/globals.css`, copied from anchor), `@webcontainer/api`,
+`@xterm/xterm` with `@xterm/addon-fit`, `@monaco-editor/react` with a self-hosted
+`monaco-editor` (no CDN), `react-resizable-panels`, next-themes for the light and
+dark switch, Prisma, NextAuth. The template booted inside the WebContainer is Vite + React 18.
 
 ```bash
 git clone https://github.com/ykstorm/codecraft-ai
@@ -120,10 +124,10 @@ the NextAuth callbacks need all six of these:
 | `DATABASE_URL` | Prisma (users and accounts) | a MongoDB connection string |
 
 If any of them is missing or blank, the app runs the playground only
-(`isAuthConfigured` in `lib/env-validate.ts`): the landing header has no dashboard
+(`isAuthConfigured` in `lib/env-validate.ts`): the site links have no dashboard
 link, and `/dashboard`, `/settings`, `/auth/sign-in` and `/api/auth/*` answer a 503 page
-instead of the 500 Auth.js would raise. The proxy checks on every request; the header
-link is decided when the static landing page is built, which on Vercel uses the same
+instead of the 500 Auth.js would raise. The proxy checks on every request; the
+dashboard link is decided when the static pages are built, which on Vercel uses the same
 variables as the runtime.
 
 ## Limitations
