@@ -2,7 +2,7 @@ import type { FileSystemTree } from "@webcontainer/api";
 
 /**
  * Minimal but REAL Vite + React app, mounted inline into the WebContainer (no
- * disk read, no DB — Vercel-serverless safe). `npm install && npm run dev`
+ * disk read, no DB, Vercel-serverless safe). `npm install && npm run dev`
  * boots an actual Vite dev server inside the browser tab with HMR.
  *
  * Why Vite instead of Next.js: Next 15.x's dev server is slow and unstable
@@ -12,7 +12,7 @@ import type { FileSystemTree } from "@webcontainer/api";
  * one Chrome session on 2026-10-07; one machine's number) and hot-reloads edits
  * in <2s, so it is the stable default for the live playground.
  *
- * JSX (not TSX) keeps the install light — no TypeScript toolchain needed.
+ * JSX (not TSX) keeps the install light, no TypeScript toolchain needed.
  */
 export const viteReactTree: FileSystemTree = {
   "package.json": {

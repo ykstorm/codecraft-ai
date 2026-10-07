@@ -15,7 +15,7 @@ _Last verified: 2026-10-07, branch `host-ui`._
 | `npx tsc --noEmit` | exit 0 |
 | `npm run lint` | exit 0, no warnings |
 | `npm run build` (`prisma generate && next build`) | exit 0 |
-| `npm test` (vitest) | 76 passed in 7 files |
+| `npm test` (vitest) | 84 passed in 7 files |
 | `npm run build` with no auth env + `next start` | `/` 200; `/dashboard`, `/settings`, `/auth/sign-in`, `/api/auth/session` 503 |
 
 The live in-tab WebContainer boot/edit/terminal requires a real cross-origin-isolated
@@ -44,7 +44,7 @@ browser and is verified on the Vercel preview (see "User actions" in the PR).
 | The shell demo runs a real `ls && node -v` | `components/ui/shell-demo.tsx:67` (`wc.spawn("sh", ["-c","ls && node -v"])`) | Vercel preview: real output streams |
 | Landing + playground are public by design | `routes.ts:5-13` (`publicRoutes` incl. `/playground/*`) + `routes.ts:25` (`isPublicRoute`, prefix match) | `tests/auth-unavailable.test.ts` |
 | `/dashboard`, `/settings` are auth-gated | not in `publicRoutes` (`routes.ts:5-13`) → `proxy.ts:34-37` (redirect to `/auth/sign-in`); in-page `auth()`: `app/dashboard/page.tsx:9-10`, `app/settings/page.tsx:8-9` | `tests/auth-unavailable.test.ts`: 307 with the auth env |
-| Without the auth env, sign-in surfaces answer 503 | `proxy.ts:47-51` + `lib/env-validate.ts` (`isAuthConfigured`) + `lib/auth-unavailable.ts`; handler: `app/api/auth/[...nextauth]/route.ts` | `tests/auth-unavailable.test.ts`; local `next start` without env |
+| Without the auth env, sign-in surfaces answer 503 | `proxy.ts:50-54` + `lib/env-validate.ts` (`isAuthConfigured`) + `lib/auth-unavailable.ts`; handler: `app/api/auth/[...nextauth]/route.ts` | `tests/auth-unavailable.test.ts`; local `next start` without env |
 | COOP/COEP cross-origin isolation on every route | `next.config.ts:11-18` + `lib/security-headers.ts:68-69` | `tests/security-headers.test.ts`; browser: `window.crossOriginIsolated === true` |
 | CSP reports reach `/api/csp-report` | `lib/security-headers.ts:62-63` (`report-uri`, `report-to`) + Reporting-Endpoints header + `app/api/csp-report/route.ts` | `tests/csp-report.test.ts`, `tests/security-headers.test.ts`; Vercel preview logs 2026-10-07: a browser report logged as one `csp-report` line, no `frame-src` report for the boot frame |
 | No native modules / WASM Node limit | inherent to `@webcontainer/api` | documented limitation |
