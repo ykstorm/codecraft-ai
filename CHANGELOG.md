@@ -39,8 +39,8 @@ All notable changes to this project will be documented in this file.
 - Two duplicate `cn()` tests in `tests/utils.test.ts`, which left 14 unit tests.
 
 ### Tests
-- 79 unit tests in 8 files: the snapshot paths, bin modes and budget, the dev
-  server exit report, the boot timeout, the security headers, the CSP report
+- 81 unit tests in 8 files: the snapshot paths, bin modes and budget, the dev
+  server exit report and its plain-text tail, the boot timeout, the security headers, the CSP report
   route, the auth env check and the proxy's 503 answers, alongside the existing
   env and `cn()` tests.
 

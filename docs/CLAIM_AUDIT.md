@@ -15,7 +15,7 @@ _Last verified: 2026-10-07, branch `deep-dive-fixes`._
 | `npx tsc --noEmit` | exit 0 |
 | `npm run lint` | exit 0, no warnings |
 | `npm run build` (`prisma generate && next build`) | exit 0 |
-| `npm test` (vitest) | 79 passed in 8 files |
+| `npm test` (vitest) | 81 passed in 8 files |
 | `npm run build` with no auth env + `next start` | `/` 200; `/dashboard`, `/settings`, `/auth/sign-in`, `/api/auth/session` 503 |
 
 The live in-tab WebContainer boot/edit/terminal requires a real cross-origin-isolated
@@ -33,8 +33,8 @@ browser and is verified on the Vercel preview (see "User actions" in the PR).
 | Interactive terminal wired to a live `jsh` shell | `hooks/use-vite-webcontainer.ts:246` (`wc.spawn("jsh", …)`) + `components/playground/interactive-terminal.tsx:104` (xterm `onData` → `shell.input` writer) | Vercel preview: type `ls`, `npm install dayjs`; it runs |
 | Boot/install output streams into the terminal | `hooks/use-vite-webcontainer.ts:267,278` (`emit` via `onOutput`) + `interactive-terminal.tsx:58` (`registerSink`) | Vercel preview: install logs appear live |
 | Live preview from the real `server-ready` URL | `hooks/use-vite-webcontainer.ts:333` (`wc.on("server-ready", …)` → `setServerUrl`) → `components/playground/web-playground.tsx:164` iframe `src={serverUrl}` | Vercel preview: iframe src is the WC URL, not hardcoded |
-| A dev server exit shows an error and its last lines | `hooks/use-vite-webcontainer.ts:365` (`watchDevExit`) + `lib/dev-process.ts` | `tests/dev-process.test.ts`; Vercel preview: `process.exit(3)` in `vite.config.js` |
-| Snapshot cache: return visits restore instead of reinstalling | export: `lib/project-snapshot.ts:45` (`wc.export(wc.workdir, …)` without `node_modules/.vite`) called at `hooks/use-vite-webcontainer.ts:117`, saved at `:123`; restore: `:148` (`loadSnapshot`) → `:156` → `lib/project-snapshot.ts:60-63` (mount into the working directory, check `package.json` and `node_modules`, then make the bin scripts executable again at `:82`); store: `lib/snapshot-cache.ts:94,112` (IndexedDB) | `tests/project-snapshot.test.ts`; Vercel preview: reload shows "cached" |
+| A dev server exit shows an error and its last lines | `hooks/use-vite-webcontainer.ts:365` (`watchDevExit`) + `lib/dev-process.ts` | `tests/dev-process.test.ts`; Vercel preview 2026-10-07: `process.exit(3)` in `vite.config.js` gave the banner with exit code 3 and the last lines in the terminal |
+| Snapshot cache: return visits restore instead of reinstalling | export: `lib/project-snapshot.ts:45` (`wc.export(wc.workdir, …)` without `node_modules/.vite`) called at `hooks/use-vite-webcontainer.ts:117`, saved at `:123`; restore: `:148` (`loadSnapshot`) → `:156` → `lib/project-snapshot.ts:60-63` (mount into the working directory, check `package.json` and `node_modules`, then make the bin scripts executable again at `:82`); store: `lib/snapshot-cache.ts:94,112` (IndexedDB) | `tests/project-snapshot.test.ts`; Vercel preview 2026-10-07: a 36.5 MB snapshot, and reloads ready as "cached" in 11.6 s and 16.8 s |
 | Snapshot budget: at most 200 MB and half the quota, checked on save | `lib/project-snapshot.ts:100` (`checkSnapshotBudget`) before `saveSnapshot` at `hooks/use-vite-webcontainer.ts:123` | `tests/project-snapshot.test.ts` |
 | Reset deletes the stored snapshot and reinstalls from the template | `hooks/use-vite-webcontainer.ts:297-309` (`reset` → `clearSnapshot` + `forceCold`), template mounted over the folder at `:190` + `web-playground.tsx:105-111` reset button | Vercel preview: click reset, cold reinstall runs |
 | Three resizable panels (editor / terminal / preview) | `components/playground/web-playground.tsx:133-182` (`ResizablePanelGroup` h+v) | Vercel preview: drag handles resize |
@@ -45,7 +45,7 @@ browser and is verified on the Vercel preview (see "User actions" in the PR).
 | `/dashboard`, `/settings` are auth-gated | not in `publicRoutes` (`routes.ts:5-13`) → `proxy.ts:34-37` (redirect to `/auth/sign-in`); in-page `auth()`: `app/dashboard/page.tsx:9-10`, `app/settings/page.tsx:8-9` | `tests/auth-unavailable.test.ts`: 307 with the auth env |
 | Without the auth env, sign-in surfaces answer 503 | `proxy.ts:47-51` + `lib/env-validate.ts` (`isAuthConfigured`) + `lib/auth-unavailable.ts`; handler: `app/api/auth/[...nextauth]/route.ts` | `tests/auth-unavailable.test.ts`; local `next start` without env |
 | COOP/COEP cross-origin isolation on every route | `next.config.ts:11-18` + `lib/security-headers.ts:68-69` | `tests/security-headers.test.ts`; browser: `window.crossOriginIsolated === true` |
-| CSP reports reach `/api/csp-report` | `lib/security-headers.ts:62-63` (`report-uri`, `report-to`) + Reporting-Endpoints header + `app/api/csp-report/route.ts` | `tests/csp-report.test.ts`, `tests/security-headers.test.ts` |
+| CSP reports reach `/api/csp-report` | `lib/security-headers.ts:62-63` (`report-uri`, `report-to`) + Reporting-Endpoints header + `app/api/csp-report/route.ts` | `tests/csp-report.test.ts`, `tests/security-headers.test.ts`; Vercel preview logs 2026-10-07: a browser report logged as one `csp-report` line, no `frame-src` report for the boot frame |
 | No native modules / WASM Node limit | inherent to `@webcontainer/api` | documented limitation |
 
 ## Honesty notes

@@ -135,7 +135,9 @@ variables as the runtime.
   runs in your tab. In one Chrome session on 2026-10-07 a cold boot took 73.0 s and a
   boot after reset took 47.0 s; those are one machine's numbers. Return visits mount
   the stored snapshot instead of running `npm install`, when the snapshot fit the
-  budget. The playground header shows the measured time of each boot.
+  budget; on the same machine, two return visits to a preview deployment were ready
+  in 11.6 s and 16.8 s later that day, with a 36.5 MB snapshot. The playground header
+  shows the measured time of each boot.
 - Reset deletes this template's stored snapshot from IndexedDB, stops the dev server
   and the shell, mounts the template files over the project folder and runs
   `npm install` again. It does not empty the folder: edits to the template's files
