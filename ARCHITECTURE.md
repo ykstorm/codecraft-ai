@@ -64,6 +64,7 @@ NextAuth v5 (Google + GitHub) with a Prisma adapter over MongoDB (`auth.ts`,
 gallery, and the playgrounds are public so the editor opens without signing in.
 
 Sign-in needs six variables (`lib/env-validate.ts`). Without them the app runs
-the playground only: `proxy.ts` answers every non-public path, `/auth/sign-in`
-and `/api/auth/*` included, with a 503 page from `lib/auth-unavailable.ts`, and
-the landing header has no dashboard link. The public deployment runs this way.
+the playground only: `proxy.ts` answers the paths that need sign-in (`/dashboard`,
+`/settings`, `/auth/sign-in` and `/api/auth/*`, listed in `routes.ts`) with a 503
+page from `lib/auth-unavailable.ts`, every other path falls through to Next so an
+unknown one reaches the 404 page, and the landing header has no dashboard link. The public deployment runs this way.
