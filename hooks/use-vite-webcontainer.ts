@@ -60,7 +60,8 @@ type UseViteWebContainer = {
   writeFile: (path: string, contents: string) => Promise<void>;
   /** read a file from the WebContainer FS */
   readFile: (path: string) => Promise<string>;
-  /** wipe the cached snapshot + re-mount the pristine template, reinstall */
+  /** delete the stored snapshot, mount the template over the project folder and
+   *  reinstall; after a boot timeout, reload the page instead */
   reset: () => void;
   /** attach an output sink for terminal streaming (boot logs + shell) */
   onOutput: (sink: (chunk: string) => void) => void;

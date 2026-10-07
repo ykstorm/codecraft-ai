@@ -51,9 +51,9 @@ export default function Home() {
             </p>
             <p className="mt-3 max-w-2xl font-mono text-xs text-muted-foreground">
               The first visit is a cold boot: Node and npm install run in your
-              tab. Return visits restore a cached snapshot instead of
-              reinstalling, and the playground header shows the measured boot
-              time.
+              tab. Return visits restore the cached project snapshot instead of
+              reinstalling, when it fit the storage budget, and the playground
+              header shows the measured boot time.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link

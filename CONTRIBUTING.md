@@ -11,14 +11,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The landing page and the playground need no secrets — open
+The landing page and the playground need no secrets. Open
 `http://localhost:3000/playground/vite-react-starter`.
 
 ## What's in scope
 
 - Monaco editor integration, xterm.js terminal, WebContainer boot/shutdown
 - The Vite + React playground template and the snapshot cache
-- Project save/load via Prisma + MongoDB
 - Auth (NextAuth v5 with Google + GitHub OAuth)
 
 ## What's NOT in scope (open an issue first)

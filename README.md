@@ -27,12 +27,16 @@ Pages:
   recorded).
 - `/playgrounds`: the template gallery. One template is wired, Vite + React. Others
   are added only when they boot end to end.
-- `/playground/[slug]`: the IDE. A resizable four-pane layout with a file tree, a
-  Monaco editor, an xterm terminal connected to the container's `jsh` shell, and a
+- `/playground/[slug]`: the IDE. Three resizable panels: a Monaco editor with a file
+  list beside it, an xterm terminal connected to the container's `jsh` shell, and a
   preview iframe served from the WebContainer's `server-ready` URL. Edits are written
   into the container's filesystem after a 300 ms debounce and Vite's HMR refreshes the
-  preview. On a narrow viewport the page shows a desktop-only note instead of booting.
+  preview. On a narrow viewport the page shows a desktop-only note, but the
+  WebContainer still boots behind it: the boot hook runs before the width check
+  (`components/playground/web-playground.tsx`).
 - `/api/now`: a liveness probe that returns today's date.
+- `/api/csp-report`: receives the report-only Content-Security-Policy's violation
+  reports and logs one short line for each.
 
 The landing page, the gallery and the playgrounds are public, so the editor opens
 without signing in. `/dashboard` and `/settings` are behind NextAuth when the auth
@@ -47,13 +51,21 @@ variables are set (see Environment below); without them they answer 503. See
 2. The host UI boots a WebContainer in the tab: it mounts the template files and
    spawns the install and dev-server processes
    (`hooks/use-vite-webcontainer.ts`).
-3. If IndexedDB holds a snapshot of `node_modules` from an earlier visit and it fits
-   the storage budget (at most 200 MB and half of the quota), the hook restores it
-   instead of running `npm install`; after a fresh install it saves one.
+3. If IndexedDB holds a snapshot of the project folder from an earlier visit, the
+   hook mounts it back into the container's working directory instead of running
+   `npm install`, and checks that `package.json` and `node_modules` are there. A
+   stored value in an older layout, or a restore without those two, is deleted and
+   the boot installs from the template. After a fresh install the hook exports the
+   project folder, without Vite's cache in `node_modules/.vite`, and saves it only if
+   that export fits the storage budget: at most 200 MB, and the site's storage at
+   most half of its quota after the write. The budget is checked on save, before
+   anything is written (`lib/project-snapshot.ts`, `lib/snapshot-cache.ts`).
 4. Edits in Monaco are written into the container with `fs.writeFile`; the terminal
    is wired to the container's `jsh` shell over stdin and stdout.
 5. When the dev server inside the container reports a URL, the preview iframe loads
-   it.
+   it. If the dev server exits on its own, the page shows an error and the terminal
+   repeats the last lines of its output. If the runtime has not booted after 60 s,
+   the page says so instead of waiting.
 
 `SharedArrayBuffer`, which WebContainers need, is only available to
 cross-origin-isolated documents. Both headers are set on every route
@@ -116,22 +128,30 @@ variables as the runtime.
   a native addon will not install or run: no `sqlite3`, `node-gyp`, `sharp` or
   `bcrypt`. Pure JavaScript dependencies only.
 - The first visit is slow. The first boot plus `npm install` for the Vite template
-  runs in your tab and has taken 30 to 90 seconds in our own browsers. On return
-  visits the container restores the IndexedDB snapshot instead, which has brought
-  the boot under 20 seconds on the same machines. The reset button in the playground
-  wipes the snapshot and reinstalls from the pristine template.
+  runs in your tab. In one Chrome session on 2026-10-07 a cold boot took 73.0 s and a
+  boot after reset took 47.0 s; those are one machine's numbers. Return visits mount
+  the stored snapshot instead of running `npm install`, when the snapshot fit the
+  budget. The playground header shows the measured time of each boot.
+- Reset deletes this template's stored snapshot from IndexedDB, stops the dev server
+  and the shell, mounts the template files over the project folder and runs
+  `npm install` again. It does not empty the folder: edits to the template's files
+  are replaced, while files added from the terminal and the installed
+  `node_modules` stay. After a boot that timed out, reset and retry reload the page
+  instead, because only a reload can start the runtime again.
 - Edits do not survive a hard refresh. A full reload re-mounts the snapshot or the
   template. The editor writes into the container filesystem for HMR, not to durable
   storage.
 - A current desktop browser is required. `SharedArrayBuffer` and cross-origin
   isolation are needed, so current Chrome, Edge or Firefox. Narrow viewports get the
-  desktop-only note instead of a broken boot.
+  desktop-only note; the container still boots and installs behind it.
 - One template is live. `vite-react-starter` boots end to end.
 
 Verification: the WebContainer boot can only be exercised in a real
-cross-origin-isolated browser. CI runs install, `prisma generate`, typecheck, lint,
-`next build` and the unit tests; the in-tab boot, edit and terminal are checked by
-hand on the Vercel preview. See [`docs/CLAIM_AUDIT.md`](docs/CLAIM_AUDIT.md).
+cross-origin-isolated browser. CI runs lint, typecheck (after `prisma generate`), the
+unit tests, an audit of the production dependencies (`npm audit --omit=dev
+--audit-level=high`) and Playwright smoke tests against a production `next build`; a
+separate workflow builds the Docker image. The in-tab boot, edit and terminal are
+checked by hand on the Vercel preview. See [`docs/CLAIM_AUDIT.md`](docs/CLAIM_AUDIT.md).
 
 ## License
 
