@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { WebContainer, WebContainerProcess } from "@webcontainer/api";
 
-import { getWebContainer } from "@/lib/webcontainer";
+import { BootTimeoutError, getWebContainer } from "@/lib/webcontainer";
+import {
+  createOutputTail,
+  devExitMessage,
+  watchDevExit,
+  type OutputTail,
+} from "@/lib/dev-process";
 import { loadSnapshot, saveSnapshot, clearSnapshot } from "@/lib/snapshot-cache";
 import {
   checkSnapshotBudget,
@@ -17,6 +23,8 @@ import { withTimeout, TimeoutError } from "@/lib/timeout";
 
 /** npm install is killed if it hasn't exited within this wall-clock budget. */
 const INSTALL_TIMEOUT_MS = 180_000;
+/** Lines of dev server output repeated in the terminal when it exits. */
+const DEV_TAIL_LINES = 20;
 
 export type BootPhase =
   | "idle"
@@ -81,6 +89,9 @@ class BootError extends Error {}
 /** Turn an unexpected thrown error into a user-facing message. */
 function classifyBootError(err: unknown): string {
   if (err instanceof BootError) return err.message;
+  if (err instanceof BootTimeoutError) {
+    return `${err.message} Press retry to reload the page and boot again.`;
+  }
   const raw = err instanceof Error ? err.message : String(err);
   const networky =
     /fetch|network|disconnect|ERR_INTERNET|staticblitz|webcontainer-api/i.test(
@@ -210,16 +221,28 @@ async function restoreOrInstall(
   return { fromSnapshot: false, installMs: Math.round(performance.now() - installStart) };
 }
 
-/** Start the Vite dev server and an interactive `jsh` shell. */
+/**
+ * Start the Vite dev server and an interactive `jsh` shell. The dev server's
+ * output goes to the terminal and into a short tail, so an exit can be shown
+ * with the lines that led up to it.
+ */
 async function startDevAndShell(
   wc: WebContainer,
   emit: Emit
-): Promise<{ dev: WebContainerProcess; shell: WebContainerProcess }> {
+): Promise<{ dev: WebContainerProcess; shell: WebContainerProcess; tail: OutputTail }> {
   emit("$ npm run dev\r\n");
   const dev = await wc.spawn("npm", ["run", "dev"]);
-  dev.output.pipeTo(new WritableStream({ write: (d) => emit(d) }));
+  const tail = createOutputTail(DEV_TAIL_LINES);
+  dev.output.pipeTo(
+    new WritableStream({
+      write: (d) => {
+        tail.push(d);
+        emit(d);
+      },
+    })
+  );
   const shell = await wc.spawn("jsh", [], { terminal: { cols: 80, rows: 24 } });
-  return { dev, shell };
+  return { dev, shell, tail };
 }
 
 export function useViteWebContainer(): UseViteWebContainer {
@@ -246,6 +269,8 @@ export function useViteWebContainer(): UseViteWebContainer {
   // on unmount (and on reset) so they don't leak across navigations.
   const devProcRef = useRef<WebContainerProcess | null>(null);
   const shellProcRef = useRef<WebContainerProcess | null>(null);
+  // Set when the boot timed out: this page can't boot again, so reset reloads.
+  const reloadOnResetRef = useRef(false);
 
   const onOutput = useCallback((sink: (chunk: string) => void) => {
     outputSinkRef.current = sink;
@@ -268,6 +293,10 @@ export function useViteWebContainer(): UseViteWebContainer {
   );
 
   const reset = useCallback(() => {
+    if (reloadOnResetRef.current) {
+      window.location.reload();
+      return;
+    }
     void clearSnapshot(SNAPSHOT_KEY);
     setServerUrl(null);
     setShell(null);
@@ -320,7 +349,7 @@ export function useViteWebContainer(): UseViteWebContainer {
         setTimings((t) => ({ ...t, fromSnapshot, installMs: installMs ?? t.installMs }));
 
         setPhase("starting-dev");
-        const { dev, shell: sh } = await startDevAndShell(wc, emit);
+        const { dev, shell: sh, tail } = await startDevAndShell(wc, emit);
         if (disposed) {
           dev.kill();
           sh.kill();
@@ -329,8 +358,20 @@ export function useViteWebContainer(): UseViteWebContainer {
         devProcRef.current = dev;
         shellProcRef.current = sh;
         setShell(sh);
+        // Vite does not exit on its own. If it does (a broken project, a bad
+        // config), show the error instead of waiting at "starting dev server".
+        void watchDevExit(dev, tail, {
+          isDisposed: () => disposed,
+          emit,
+          onExit: (code) => {
+            setServerUrl(null);
+            setPhase("error");
+            setError(devExitMessage(code));
+          },
+        });
       } catch (e) {
         if (disposed) return;
+        if (e instanceof BootTimeoutError) reloadOnResetRef.current = true;
         setPhase("error");
         setError(classifyBootError(e));
         const raw = e instanceof Error ? e.message : String(e);
