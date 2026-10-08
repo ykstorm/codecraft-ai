@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `robots.txt` and `sitemap.xml`. Robots allows everything except `/api/`, the
+  signed-in pages and the sign-in page. The sitemap lists the home page and
+  `/playgrounds`, the public pages with a fixed path.
+- `metadataBase` and a canonical URL in the root layout. The canonical is
+  relative, so each page names its own address.
+
 ### Changed
 - The host pages (landing, gallery, playground bar and file list, desktop-only
   note, sign-in, 404 and the 503 page) use the shared tokens from anchor in plain
