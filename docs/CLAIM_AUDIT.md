@@ -15,7 +15,7 @@ _Last verified: 2026-10-07, branch `host-ui`._
 | `npx tsc --noEmit` | exit 0 |
 | `npm run lint` | exit 0, no warnings |
 | `npm run build` (`prisma generate && next build`) | exit 0 |
-| `npm test` (vitest) | 84 passed in 7 files |
+| `npm test` (vitest) | 94 passed in 8 files |
 | `npm run build` with no auth env + `next start` | `/` 200; `/dashboard`, `/settings`, `/auth/sign-in`, `/api/auth/session` 503 |
 
 The live in-tab WebContainer boot/edit/terminal requires a real cross-origin-isolated
