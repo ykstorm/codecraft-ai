@@ -8,57 +8,52 @@ import type { FileSystemTree } from "@webcontainer/api";
 import { viteReactEditableFiles, viteReactTree } from "@/data/templates/vite-react";
 import { codeGround } from "@/lib/code-ground";
 
+// One starter per language worker. Each keeps the literal
+// `new Worker(new URL("...", import.meta.url))` form: that is the shape the
+// bundler (webpack 5 / Turbopack) looks for to emit the worker file.
+const startJsonWorker = () =>
+  new Worker(
+    new URL("monaco-editor/language/json/json.worker.js", import.meta.url)
+  );
+const startCssWorker = () =>
+  new Worker(
+    new URL("monaco-editor/language/css/css.worker.js", import.meta.url)
+  );
+const startHtmlWorker = () =>
+  new Worker(
+    new URL("monaco-editor/language/html/html.worker.js", import.meta.url)
+  );
+const startTsWorker = () =>
+  new Worker(
+    new URL("monaco-editor/language/typescript/ts.worker.js", import.meta.url)
+  );
+const startEditorWorker = () =>
+  new Worker(new URL("monaco-editor/editor/editor.worker.js", import.meta.url));
+
+/** Monaco's language label to the worker that serves it. */
+const WORKER_BY_LABEL = new Map<string, () => Worker>([
+  ["json", startJsonWorker],
+  ["css", startCssWorker],
+  ["scss", startCssWorker],
+  ["less", startCssWorker],
+  ["html", startHtmlWorker],
+  ["handlebars", startHtmlWorker],
+  ["razor", startHtmlWorker],
+  ["typescript", startTsWorker],
+  ["javascript", startTsWorker],
+]);
+
 // Self-host Monaco. Without this, @monaco-editor/react loads the editor from a
 // jsDelivr CDN at runtime; pointing its loader at the bundled `monaco-editor`
 // package keeps everything same-origin (no third-party CDN, CSP-clean) and the
-// language workers ship in .next/static. `new Worker(new URL(...))` is the
-// bundler-native worker form (webpack 5 / Turbopack both resolve it).
+// language workers ship in .next/static. Any other label gets the plain
+// editor worker.
 if (typeof window !== "undefined") {
   (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment =
     {
       getWorker(_workerId: string, label: string) {
-        switch (label) {
-          case "json":
-            return new Worker(
-              new URL(
-                "monaco-editor/language/json/json.worker.js",
-                import.meta.url
-              )
-            );
-          case "css":
-          case "scss":
-          case "less":
-            return new Worker(
-              new URL(
-                "monaco-editor/language/css/css.worker.js",
-                import.meta.url
-              )
-            );
-          case "html":
-          case "handlebars":
-          case "razor":
-            return new Worker(
-              new URL(
-                "monaco-editor/language/html/html.worker.js",
-                import.meta.url
-              )
-            );
-          case "typescript":
-          case "javascript":
-            return new Worker(
-              new URL(
-                "monaco-editor/language/typescript/ts.worker.js",
-                import.meta.url
-              )
-            );
-          default:
-            return new Worker(
-              new URL(
-                "monaco-editor/editor/editor.worker.js",
-                import.meta.url
-              )
-            );
-        }
+        const startWorker = WORKER_BY_LABEL.get(label) ?? startEditorWorker;
+        return startWorker();
       },
     };
   loader.config({ monaco });

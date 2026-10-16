@@ -109,6 +109,32 @@ function classifyBootError(err: unknown): string {
     : raw;
 }
 
+/** What the page shows and keeps after a boot that threw. */
+type BootFailure = {
+  /** the message for the error banner */
+  message: string;
+  /** the exit code of the process behind it, when one exited */
+  exitCode: number | null;
+  /** a timed-out boot cannot run again on this page, so reset reloads it */
+  reloadOnReset: boolean;
+  /** the raw error text for the terminal */
+  detail: string;
+};
+
+function describeBootFailure(err: unknown): BootFailure {
+  return {
+    message: classifyBootError(err),
+    exitCode: err instanceof BootError ? err.exitCode : null,
+    reloadOnReset: err instanceof BootTimeoutError,
+    detail: err instanceof Error ? err.message : String(err),
+  };
+}
+
+/** WebContainer runs only in a browser with cross-origin isolation on. */
+function canBootWebContainer(): boolean {
+  return typeof window !== "undefined" && window.crossOriginIsolated;
+}
+
 /**
  * Export the project folder and store it, but only when it fits the storage
  * budget. The budget is checked on the exported bytes before anything is
@@ -322,7 +348,7 @@ export function useViteWebContainer(): UseViteWebContainer {
     const t0 = performance.now();
 
     async function boot() {
-      if (typeof window === "undefined" || !window.crossOriginIsolated) {
+      if (!canBootWebContainer()) {
         setPhase("unavailable");
         setError(
           "Cross-origin isolation is off, so WebContainer can't boot. It needs the COOP/COEP headers and a current Chrome, Edge, or Firefox with cross-origin isolation."
@@ -383,12 +409,12 @@ export function useViteWebContainer(): UseViteWebContainer {
         });
       } catch (e) {
         if (disposed) return;
-        reloadOnResetRef.current = e instanceof BootTimeoutError;
+        const failure = describeBootFailure(e);
+        reloadOnResetRef.current = failure.reloadOnReset;
         setPhase("error");
-        setExitCode(e instanceof BootError ? e.exitCode : null);
-        setError(classifyBootError(e));
-        const raw = e instanceof Error ? e.message : String(e);
-        emit(`\r\nerror: ${raw}\r\n`);
+        setExitCode(failure.exitCode);
+        setError(failure.message);
+        emit(`\r\nerror: ${failure.detail}\r\n`);
       }
     }
 
