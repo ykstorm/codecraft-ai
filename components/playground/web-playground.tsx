@@ -45,9 +45,14 @@ function statusText(phase: BootPhase, exitCode: number | null): string {
   return PHASE_LABEL[phase];
 }
 
+/** The boot stopped: it failed, or this browser cannot run it at all. */
+function isFailedPhase(phase: BootPhase): boolean {
+  return phase === "error" || phase === "unavailable";
+}
+
 function statusTone(phase: BootPhase): StatusTone {
   if (phase === "ready") return "ok";
-  return phase === "error" || phase === "unavailable" ? "bad" : "neutral";
+  return isFailedPhase(phase) ? "bad" : "neutral";
 }
 
 /** The measured time from page start to a running dev server. */
@@ -56,6 +61,64 @@ function timingText(totalMs: number, fromSnapshot: boolean): string {
   return fromSnapshot
     ? `Ready in ${seconds} s from the snapshot`
     : `Ready in ${seconds} s, cold install`;
+}
+
+/** The boot time, shown once the dev server is running and it was measured. */
+function ReadyTime({
+  phase,
+  totalMs,
+  fromSnapshot,
+}: {
+  phase: BootPhase;
+  totalMs: number | null;
+  fromSnapshot: boolean;
+}) {
+  if (phase !== "ready" || totalMs == null) return null;
+  return <p className="meta mono">{timingText(totalMs, fromSnapshot)}</p>;
+}
+
+function previewLabel(serverUrl: string | null, failed: boolean): string {
+  if (serverUrl) return "live";
+  return failed ? "stopped" : "waiting for the dev server";
+}
+
+/** The live preview, or a line saying why there is none yet. */
+function PreviewPane({
+  serverUrl,
+  failed,
+  status,
+}: {
+  serverUrl: string | null;
+  failed: boolean;
+  status: string;
+}) {
+  return (
+    <section className="pane" aria-label="Preview">
+      <p className="pane-label">
+        <span className="pane-name">Preview</span>{" "}
+        {previewLabel(serverUrl, failed)}
+      </p>
+      {serverUrl ? (
+        <iframe
+          title="preview"
+          src={serverUrl}
+          className="preview"
+          // Sandbox the untrusted preview. It may run scripts, use its
+          // own origin, post forms, open modals and popups, but it must
+          // not navigate or redirect the top-level window, and it gets no
+          // downloads. `allow=""` denies every powerful feature; the
+          // no-referrer policy keeps our URL out of its requests.
+          sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="no-referrer"
+          allow=""
+        />
+      ) : (
+        <p className="pane-empty">
+          {failed ? "The dev server is not running." : status}
+        </p>
+      )}
+    </section>
+  );
 }
 
 export function WebPlayground({ name }: { name: string }) {
@@ -74,7 +137,7 @@ export function WebPlayground({ name }: { name: string }) {
     onOutput,
   } = useViteWebContainer();
 
-  const failed = phase === "error" || phase === "unavailable";
+  const failed = isFailedPhase(phase);
   const containerReady = container != null && !failed;
   const status = statusText(phase, exitCode);
 
@@ -89,9 +152,11 @@ export function WebPlayground({ name }: { name: string }) {
         <h1 className="bar-title">{name}</h1>
         <StatusLine tone={statusTone(phase)}>{status}</StatusLine>
         <div className="bar-end">
-          {phase === "ready" && timings.totalMs != null && (
-            <p className="meta mono">{timingText(timings.totalMs, timings.fromSnapshot)}</p>
-          )}
+          <ReadyTime
+            phase={phase}
+            totalMs={timings.totalMs}
+            fromSnapshot={timings.fromSnapshot}
+          />
           <Button
             onClick={reset}
             title="Delete the stored snapshot and install again from the template"
@@ -130,31 +195,7 @@ export function WebPlayground({ name }: { name: string }) {
 
           {/* Right column: live preview */}
           <Pane defaultSize={45} minSize={20}>
-            <section className="pane" aria-label="Preview">
-              <p className="pane-label">
-                <span className="pane-name">Preview</span>{" "}
-                {serverUrl ? "live" : failed ? "stopped" : "waiting for the dev server"}
-              </p>
-              {serverUrl ? (
-                <iframe
-                  title="preview"
-                  src={serverUrl}
-                  className="preview"
-                  // Sandbox the untrusted preview. It may run scripts, use its
-                  // own origin, post forms, open modals and popups — but it must
-                  // not navigate or redirect the top-level window, and it gets no
-                  // downloads. `allow=""` denies every powerful feature; the
-                  // no-referrer policy keeps our URL out of its requests.
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
-                  referrerPolicy="no-referrer"
-                  allow=""
-                />
-              ) : (
-                <p className="pane-empty">
-                  {failed ? "The dev server is not running." : status}
-                </p>
-              )}
-            </section>
+            <PreviewPane serverUrl={serverUrl} failed={failed} status={status} />
           </Pane>
         </PaneGroup>
       </main>
